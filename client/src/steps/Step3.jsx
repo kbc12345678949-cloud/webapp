@@ -1,11 +1,11 @@
 // src/steps/Step3.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { policies, MIN_CHARS_STEP3 } from '../data/policies';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
-export default function Step3({ onComplete, student, token, enrollmentId, stepId, initialAnswer }) {
+export default function Step3({ onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
   const [selected, setSelected] = useState(initialAnswer?.choice ?? null);
   const [reason, setReason] = useState(initialAnswer?.reason ?? '');
 
@@ -21,11 +21,34 @@ export default function Step3({ onComplete, student, token, enrollmentId, stepId
     { skip: !selected && !reason }
   );
 
+  // 입력하는 동안 계속 상위(App)에도 지금 상태를 알려둔다.
+  // 이렇게 해야 "이전 단계로" 갔다가 다시 돌아와도 쓰던 내용이 안 사라진다.
+  useEffect(() => {
+    onDraftChange?.({ choice: selected, reason });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, reason]);
+
   return (
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={3} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
 
       <div style={{ padding: '20px 20px 26px' }}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-teal)',
+              fontSize: 13,
+              padding: 0,
+              marginBottom: 14,
+              cursor: 'pointer',
+            }}
+          >
+            ← 이전 단계로 (자료 다시 보기)
+          </button>
+        )}
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           1차 판단
         </h3>
