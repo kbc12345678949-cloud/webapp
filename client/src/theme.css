@@ -1,0 +1,47 @@
+/* src/theme.css
+   승인된 디자인 톤: 항구도시 시청 정책 브리핑 문서 느낌
+   이후 모든 STEP 화면이 이 변수를 그대로 가져다 쓴다. */
+
+:root {
+  /* 색상 */
+  --color-navy: #1B2A41;      /* 헤더, 제목, 본문 강조 */
+  --color-navy-text-on: #F5F6F4;
+  --color-teal: #2B6E68;      /* 강조 박스, 버튼 보조 */
+  --color-teal-bg: #FFFFFF;
+  --color-coral: #C1502E;     /* 경고/반전(STEP4) 전용 — 아껴서 사용 */
+  --color-bg: #F5F6F4;        /* 페이지 배경 */
+  --color-card: #FFFFFF;      /* 카드 배경 */
+  --color-border: #D8D3C7;    /* 테두리 */
+  --color-text: #1B2A41;      /* 본문 제목 */
+  --color-text-body: #45524F; /* 본문 문단 */
+  --color-text-muted: #6E8C87;/* 보조 텍스트(진행 표시 등) */
+
+  /* 타이포그래피 */
+  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* 레이아웃 */
+  --radius-card: 14px;
+  --radius-button: 10px;
+  --max-width: 480px; /* 모바일 우선, 이 폭을 넘지 않게 중앙 정렬 */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  font-family: var(--font-family);
+  color: var(--color-text);
+}
+
+#root {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+button {
+  font-family: var(--font-family);
+  cursor: pointer;
+}

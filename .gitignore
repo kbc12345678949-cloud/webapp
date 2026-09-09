@@ -1,0 +1,13 @@
+# 의존성 (Render가 배포 시 새로 설치함)
+node_modules/
+
+# 빌드 결과물 (Render가 배포 시 새로 빌드함)
+client/dist/
+
+# 환경변수 (절대 커밋하지 않음 — Render 대시보드에서 직접 입력)
+.env
+.env.local
+
+# OS/에디터 잡파일
+.DS_Store
+*.log
