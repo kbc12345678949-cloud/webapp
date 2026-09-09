@@ -1,10 +1,26 @@
 // server/db/seed_production.js
 // 실제 배포 후 딱 한 번 실행하는 운영용 시드 스크립트.
+// 테이블 구조(schema.sql)가 아직 없으면 먼저 만들고, 그다음 자료를 심는다.
 // client/src/data/*.js 원본을 그대로 불러와 심으므로, 화면에 보이는 내용과 항상 동일함이 보장된다.
 // 실행: DATABASE_URL=postgres://... node db/seed_production.js
 const path = require('path');
+const fs = require('fs');
 
 async function seed(pool) {
+  // 0) 테이블 구조가 없으면 먼저 만든다 (이미 있으면 조용히 건너뜀)
+  const schemaPath = path.join(__dirname, 'schema.sql');
+  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+  try {
+    await pool.query(schemaSql);
+    console.log('스키마(테이블) 생성 완료');
+  } catch (e) {
+    if (e.message && e.message.includes('already exists')) {
+      console.log('테이블이 이미 존재하여 건너뜀');
+    } else {
+      throw e;
+    }
+  }
+
   const clientSrc = path.resolve(__dirname, '../../client/src');
   const { materials: step1Materials } = await import(path.join(clientSrc, 'data/step1Materials.js'));
   const { step4Materials } = await import(path.join(clientSrc, 'data/step4Materials.js'));
