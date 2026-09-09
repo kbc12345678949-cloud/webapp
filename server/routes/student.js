@@ -44,6 +44,12 @@ router.post('/login', async (req, res) => {
 
 // ---------- 응시 가능 여부 확인 (반별 예약 시간 체크) ----------
 async function checkWindow(projectId, classId) {
+  // "테스트반"은 선생님이 언제든 확인할 수 있도록 예약 시간과 무관하게 항상 열어둔다.
+  const classRow = await db.query('SELECT name FROM classes WHERE id = $1', [classId]);
+  if (classRow.rows[0]?.name === '테스트반') {
+    return { isOpen: true, schedules: [] };
+  }
+
   const { rows } = await db.query(
     `SELECT * FROM class_schedules
      WHERE project_id = $1 AND class_id = $2
@@ -56,7 +62,6 @@ async function checkWindow(projectId, classId) {
   );
   return { isOpen: !!openSession, schedules: rows };
 }
-
 // ---------- 프로젝트 진입: 스텝 목록 + 현재 진행상태 ----------
 router.get('/projects/:code', requireStudent, async (req, res) => {
   const { code } = req.params;
