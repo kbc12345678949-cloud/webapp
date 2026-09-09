@@ -3,7 +3,7 @@ import { useState } from 'react';
 import ProgressHeader from './components/ProgressHeader';
 import { studentLogin } from './api';
 
-const CLASS_OPTIONS = ['2학년 1반', '2학년 2반', '2학년 3반'];
+const CLASS_OPTIONS = ['2학년 1반', '2학년 2반', '2학년 3반', '테스트반'];
 
 export default function StudentLogin({ onLogin }) {
   const [className, setClassName] = useState(CLASS_OPTIONS[0]);
