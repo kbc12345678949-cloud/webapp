@@ -156,6 +156,8 @@ export default function App() {
           enrollmentId={session?.enrollment.id}
           stepId={stepId('step3')}
           initialAnswer={step3Answer}
+          onDraftChange={setStep3Answer}
+          onBack={() => setScreen('step1')}
           onComplete={(data) => {
             setStep3Answer(data);
             setScreen('step4');
