@@ -139,7 +139,7 @@ router.get('/projects/:projectId/materials', requireStudent, async (req, res) =>
   );
   // 각 자료의 확인 문제도 함께
   for (const m of rows) {
-    const q = await db.query('SELECT id, question_type, prompt, options FROM check_questions WHERE material_id = $1', [m.id]);
+    const q = await db.query('SELECT id, question_type, prompt, options, answer FROM check_questions WHERE material_id = $1', [m.id]);
     m.questions = q.rows;
   }
   res.json(rows);
