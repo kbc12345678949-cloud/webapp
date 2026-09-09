@@ -12,81 +12,121 @@ const cardStyle = {
   marginBottom: 18,
 };
 
-function OXButtons({ selected, onSelect }) {
+function OXButtons({ selected, correctValue, onSelect }) {
   return (
     <div style={{ display: 'flex', gap: 10 }}>
       {[
         { label: 'O', value: true },
         { label: 'X', value: false },
-      ].map((opt) => (
-        <button
-          key={opt.label}
-          onClick={() => onSelect(opt.value)}
-          style={{
-            flex: 1,
-            padding: '10px 0',
-            borderRadius: 8,
-            border: `1.5px solid ${selected === opt.value ? 'var(--color-navy)' : 'var(--color-border)'}`,
-            background: selected === opt.value ? 'var(--color-navy)' : 'var(--color-card)',
-            color: selected === opt.value ? 'var(--color-navy-text-on)' : 'var(--color-text)',
-            fontSize: 15,
-            fontWeight: 500,
-          }}
-        >
-          {opt.label}
-        </button>
-      ))}
+      ].map((opt) => {
+        const isSelected = selected === opt.value;
+        const isCorrectOption = correctValue !== undefined && opt.value === correctValue;
+        const showResult = selected !== undefined;
+        let bg = 'var(--color-card)';
+        let border = 'var(--color-border)';
+        let color = 'var(--color-text)';
+        if (showResult && isSelected) {
+          bg = isCorrectOption ? 'var(--color-teal)' : 'var(--color-coral)';
+          border = bg;
+          color = '#FFFFFF';
+        } else if (showResult && isCorrectOption) {
+          border = 'var(--color-teal)';
+        }
+        return (
+          <button
+            key={opt.label}
+            onClick={() => onSelect(opt.value)}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              borderRadius: 8,
+              border: `1.5px solid ${border}`,
+              background: bg,
+              color,
+              fontSize: 15,
+              fontWeight: 500,
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function MCOptions({ options, selectedIndex, onSelect }) {
+function MCOptions({ options, selectedIndex, correctIndex, onSelect }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {options.map((opt, i) => (
-        <button
-          key={i}
-          onClick={() => onSelect(i)}
-          style={{
-            textAlign: 'left',
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: `1.5px solid ${selectedIndex === i ? 'var(--color-navy)' : 'var(--color-border)'}`,
-            background: selectedIndex === i ? 'var(--color-navy)' : 'var(--color-card)',
-            color: selectedIndex === i ? 'var(--color-navy-text-on)' : 'var(--color-text)',
-            fontSize: 13.5,
-          }}
-        >
-          {i + 1}. {opt}
-        </button>
-      ))}
+      {options.map((opt, i) => {
+        const isSelected = selectedIndex === i;
+        const isCorrectOption = i === correctIndex;
+        const showResult = selectedIndex !== undefined;
+        let bg = 'var(--color-card)';
+        let border = 'var(--color-border)';
+        let color = 'var(--color-text)';
+        if (showResult && isSelected) {
+          bg = isCorrectOption ? 'var(--color-teal)' : 'var(--color-coral)';
+          border = bg;
+          color = '#FFFFFF';
+        } else if (showResult && isCorrectOption) {
+          border = 'var(--color-teal)';
+        }
+        return (
+          <button
+            key={i}
+            onClick={() => onSelect(i)}
+            style={{
+              textAlign: 'left',
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: `1.5px solid ${border}`,
+              background: bg,
+              color,
+              fontSize: 13.5,
+            }}
+          >
+            {i + 1}. {opt}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 function QuestionBlock({ q, answer, onChange }) {
+  const correctIndex = q.question_type === 'mc' && q.answer !== undefined ? Number(q.answer) : undefined;
+  const correctBool = q.question_type === 'ox' && q.answer !== undefined ? q.answer === 'true' : undefined;
+
   return (
     <div style={{ marginTop: 14 }}>
       <p style={{ fontSize: 13, color: 'var(--color-text)', fontWeight: 500, margin: '0 0 8px' }}>
         {q.prompt}
       </p>
-      {q.question_type === 'ox' && <OXButtons selected={answer} onSelect={onChange} />}
-      {q.question_type === 'mc' && <MCOptions options={q.options} selectedIndex={answer} onSelect={onChange} />}
+      {q.question_type === 'ox' && (
+        <OXButtons selected={answer} correctValue={correctBool} onSelect={onChange} />
+      )}
+      {q.question_type === 'mc' && (
+        <MCOptions options={q.options} selectedIndex={answer} correctIndex={correctIndex} onSelect={onChange} />
+      )}
       {q.question_type === 'short' && (
-        <input
-          type="text"
-          value={answer || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="답을 입력하세요"
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: '1.5px solid var(--color-border)',
-            fontSize: 13.5,
-            fontFamily: 'var(--font-family)',
-          }}
-        />
+        <>
+          <input
+            type="text"
+            value={answer || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="답을 입력하세요"
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1.5px solid var(--color-border)',
+              fontSize: 13.5,
+              fontFamily: 'var(--font-family)',
+            }}
+          />
+          <p style={{ fontSize: 12, color: 'var(--color-teal)', margin: '6px 0 0' }}>정답: {q.answer}</p>
+        </>
       )}
     </div>
   );
@@ -122,6 +162,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
 
   const material = materials[index];
   const isLast = index === materials.length - 1;
+  const isFirst = index === 0;
 
   const setAnswer = (qIdx, value) => {
     setAnswers((prev) => {
@@ -137,6 +178,10 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
     } else {
       setIndex((i) => i + 1);
     }
+  };
+
+  const goPrev = () => {
+    if (!isFirst) setIndex((i) => i - 1);
   };
 
   return (
@@ -185,21 +230,39 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
           ))}
         </div>
 
-        <button
-          onClick={goNext}
-          style={{
-            width: '100%',
-            background: 'var(--color-navy)',
-            color: 'var(--color-navy-text-on)',
-            border: 'none',
-            borderRadius: 'var(--radius-button)',
-            padding: 14,
-            fontSize: 16,
-            fontWeight: 500,
-          }}
-        >
-          {isLast ? '자료 확인 완료' : '다음 자료'}
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={goPrev}
+            disabled={isFirst}
+            style={{
+              flex: 1,
+              background: isFirst ? 'var(--color-border)' : '#FFFFFF',
+              color: isFirst ? 'var(--color-text-muted)' : 'var(--color-navy)',
+              border: `1.5px solid ${isFirst ? 'var(--color-border)' : 'var(--color-navy)'}`,
+              borderRadius: 'var(--radius-button)',
+              padding: 14,
+              fontSize: 16,
+              fontWeight: 500,
+            }}
+          >
+            이전 자료
+          </button>
+          <button
+            onClick={goNext}
+            style={{
+              flex: 2,
+              background: 'var(--color-navy)',
+              color: 'var(--color-navy-text-on)',
+              border: 'none',
+              borderRadius: 'var(--radius-button)',
+              padding: 14,
+              fontSize: 16,
+              fontWeight: 500,
+            }}
+          >
+            {isLast ? '자료 확인 완료' : '다음 자료'}
+          </button>
+        </div>
       </div>
     </div>
   );
