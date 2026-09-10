@@ -1,18 +1,32 @@
 // src/teacher/ProgressOverview.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { teacherApi } from './api';
 import GradingPanel from './GradingPanel';
 
 export default function ProgressOverview({ token, projectId }) {
-  const [classId, setClassId] = useState('1');
+  const [classes, setClasses] = useState([]);
+  const [className, setClassName] = useState('');
   const [students, setStudents] = useState(null);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null); // { name, enrollment_id }
   const [responses, setResponses] = useState(null);
   const [downloading, setDownloading] = useState(false);
 
+  useEffect(() => {
+    teacherApi
+      .getClasses(token)
+      .then((data) => {
+        setClasses(data);
+        if (data.length > 0) setClassName(data[0].name);
+      })
+      .catch((err) => setError(err.message));
+  }, [token]);
+
+  const classId = classes.find((c) => c.name === className)?.id;
+
   const load = async () => {
     setError('');
+    if (!classId) return;
     try {
       const data = await teacherApi.getProgress(token, projectId, classId);
       setStudents(data);
@@ -22,13 +36,14 @@ export default function ProgressOverview({ token, projectId }) {
   };
 
   const download = async () => {
+    if (!classId) return;
     setDownloading(true);
     try {
       const blob = await teacherApi.exportResults(token, projectId, classId);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `결과_${classId}반.csv`;
+      a.download = `결과_${className}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -54,14 +69,19 @@ export default function ProgressOverview({ token, projectId }) {
         반별 진행 현황
       </h2>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
-        <label style={{ fontSize: 13, color: 'var(--color-text-body)' }}>학급 ID</label>
-        <input
-          type="text"
-          value={classId}
-          onChange={(e) => setClassId(e.target.value)}
-          style={{ width: 60, padding: 8, border: '1px solid var(--color-border)', borderRadius: 6 }}
-        />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <label style={{ fontSize: 13, color: 'var(--color-text-body)' }}>반</label>
+        <select
+          value={className}
+          onChange={(e) => setClassName(e.target.value)}
+          style={{ padding: 8, border: '1px solid var(--color-border)', borderRadius: 6 }}
+        >
+          {classes.map((c) => (
+            <option key={c.id} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
         <button
           onClick={load}
           style={{
