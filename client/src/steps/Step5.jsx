@@ -1,5 +1,5 @@
 // src/steps/Step5.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { policies } from '../data/policies';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -7,7 +7,7 @@ import { saveResponse } from '../api';
 
 const MIN_CHARS_STEP5 = 50;
 
-export default function Step5({ previousChoice, onComplete, student, token, enrollmentId, stepId, initialAnswer }) {
+export default function Step5({ previousChoice, onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
   const [decision, setDecision] = useState(initialAnswer?.decision ?? null);
   const [newChoice, setNewChoice] = useState(
     initialAnswer?.decision === 'change' ? initialAnswer.choice : null
@@ -29,11 +29,33 @@ export default function Step5({ previousChoice, onComplete, student, token, enro
     { skip: !decision && !reason }
   );
 
+  useEffect(() => {
+    onDraftChange?.({ decision, choice: finalChoice, reason });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decision, newChoice, reason]);
+
   return (
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={5} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
 
       <div style={{ padding: '20px 20px 26px' }}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              display: 'block',
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-teal)',
+              fontSize: 13,
+              padding: 0,
+              marginBottom: 14,
+              cursor: 'pointer',
+            }}
+          >
+            ← 이전 단계로 (새로운 상황 다시 보기)
+          </button>
+        )}
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           재판단
         </h3>
