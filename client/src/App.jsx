@@ -10,6 +10,7 @@ import Step6 from './steps/Step6';
 import Step7 from './steps/Step7';
 import Step8 from './steps/Step8';
 import Step9 from './steps/Step9';
+import Done from './steps/Done';
 import { enterProject, fetchStakeholders } from './api';
 
 const PROJECT_CODE = 'tourism';
@@ -100,7 +101,7 @@ export default function App() {
   // 이해관계자는 STEP6·7 둘 다 같은 목록을 쓰므로, STEP6에 진입할 때 한 번만 가져와 공유한다.
   // (새로고침 후 STEP7·8로 바로 복귀하는 경우에도 필요하므로 STEP7·8 진입 시에도 함께 확인한다)
   useEffect(() => {
-    if (!['step6', 'step7', 'step8'].includes(screen)) return;
+    if (!['step6', 'step7', 'step8', 'done'].includes(screen)) return;
     if (stakeholders || !student?.token || !session?.project.id) return;
     fetchStakeholders(student.token, session.project.id)
       .then(setStakeholders)
@@ -171,6 +172,7 @@ export default function App() {
           projectId={session?.project.id}
           stepId={stepId('step4')}
           previousChoice={step3Answer?.choice}
+          onBack={() => setScreen('step3')}
           onComplete={() => setScreen('step5')}
         />
       )}
@@ -182,6 +184,8 @@ export default function App() {
           stepId={stepId('step5')}
           previousChoice={step3Answer?.choice}
           initialAnswer={step5Answer}
+          onDraftChange={setStep5Answer}
+          onBack={() => setScreen('step4')}
           onComplete={(data) => {
             setStep5Answer(data);
             setScreen('step6');
@@ -193,6 +197,7 @@ export default function App() {
           student={student}
           stakeholders={stakeholders}
           loadError={stakeholderError}
+          onBack={() => setScreen('step5')}
           onComplete={() => setScreen('step7')}
         />
       )}
@@ -205,6 +210,8 @@ export default function App() {
           stakeholders={stakeholders}
           loadError={stakeholderError}
           initialAnswer={step7Answer}
+          onDraftChange={setStep7Answer}
+          onBack={() => setScreen('step6')}
           onComplete={(data) => {
             setStep7Answer(data);
             setScreen('step8');
@@ -222,6 +229,8 @@ export default function App() {
           step5Answer={step5Answer}
           step7Answer={step7Answer}
           initialAnswer={step8Answer}
+          onDraftChange={setStep8Answer}
+          onBack={() => setScreen('step7')}
           onComplete={(data) => {
             setStep8Answer(data);
             setScreen('step9');
@@ -235,15 +244,21 @@ export default function App() {
           enrollmentId={session?.enrollment.id}
           stepId={stepId('step9')}
           initialAnswer={step9Answer}
+          onDraftChange={setStep9Answer}
+          onBack={() => setScreen('step8')}
           onSubmit={() => setScreen('done')}
         />
       )}
       {screen === 'done' && (
-        <div style={{ padding: 20 }}>
-          <p style={{ color: 'var(--color-text-body)', fontSize: 14 }}>
-            제출이 완료되었습니다. 수고하셨습니다.
-          </p>
-        </div>
+        <Done
+          student={student}
+          step3Answer={step3Answer}
+          step5Answer={step5Answer}
+          step7Answer={step7Answer}
+          step8Answer={step8Answer}
+          step9Answer={step9Answer}
+          stakeholders={stakeholders}
+        />
       )}
     </div>
   );
