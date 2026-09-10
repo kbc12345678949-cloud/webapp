@@ -1,5 +1,5 @@
 // src/steps/Step9.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { saveResponse, submitFinal } from '../api';
 
@@ -35,7 +35,7 @@ function TextField({ label, value, onChange, min, placeholder }) {
   );
 }
 
-export default function Step9({ onSubmit, student, token, enrollmentId, stepId, initialAnswer }) {
+export default function Step9({ onSubmit, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
   const [branch, setBranch] = useState(initialAnswer?.branch ?? null);
   const [hadPoint, setHadPoint] = useState(initialAnswer?.hadPoint ?? '');
   const [hadChanged, setHadChanged] = useState(initialAnswer?.hadChanged ?? '');
@@ -69,10 +69,32 @@ export default function Step9({ onSubmit, student, token, enrollmentId, stepId, 
     self3,
   };
 
+  useEffect(() => {
+    onDraftChange?.(finalPayload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branch, hadPoint, hadChanged, noneReason, self1, self2, self3]);
+
   return (
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={9} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
       <div style={{ padding: '20px 20px 26px' }}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              display: 'block',
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-teal)',
+              fontSize: 13,
+              padding: 0,
+              marginBottom: 14,
+              cursor: 'pointer',
+            }}
+          >
+            ← 이전 단계로 (최종 결정 다시 보기)
+          </button>
+        )}
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           성찰
         </h3>
