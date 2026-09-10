@@ -1,6 +1,6 @@
 // src/steps/Step6.jsx
 import ProgressHeader from '../components/ProgressHeader';
-import MaterialIcon from '../components/MaterialIcon';
+import StakeholderIcon from '../components/StakeholderIcon';
 
 const Row = ({ label, text }) => (
   <div style={{ marginBottom: 8 }}>
@@ -67,7 +67,7 @@ export default function Step6({ onComplete, onBack, student, stakeholders, loadE
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <MaterialIcon type="person" size={20} />
+<StakeholderIcon stakeholderKey={s.stakeholder_key} size={20} />
                 <span style={{ fontSize: 14.5, fontWeight: 500, color: 'var(--color-navy)' }}>{s.name}</span>
               </div>
               {s.linked_material_label && (
