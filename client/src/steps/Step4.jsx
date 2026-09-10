@@ -4,7 +4,7 @@ import ProgressHeader from '../components/ProgressHeader';
 import { policies } from '../data/policies';
 import { fetchMaterials } from '../api';
 
-export default function Step4({ previousChoice, onComplete, student, token, projectId, stepId }) {
+export default function Step4({ previousChoice, onComplete, onBack, student, token, projectId, stepId }) {
   const [phase, setPhase] = useState('alert'); // 'alert' | 'materials'
   const [materials, setMaterials] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -23,6 +23,24 @@ export default function Step4({ previousChoice, onComplete, student, token, proj
         <ProgressHeader projectLabel="TF팀 브리핑" currentStep={4} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
 
         <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+          {onBack && (
+            <button
+              onClick={onBack}
+              style={{
+                display: 'block',
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-border)',
+                fontSize: 13,
+                padding: 0,
+                marginBottom: 20,
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              ← 이전 단계로 (1차 판단 다시 보기)
+            </button>
+          )}
           <div
             style={{
               display: 'inline-block',
@@ -87,6 +105,21 @@ export default function Step4({ previousChoice, onComplete, student, token, proj
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={4} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
       <div style={{ padding: '20px 20px 26px' }}>
+        <button
+          onClick={() => setPhase('alert')}
+          style={{
+            display: 'block',
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-teal)',
+            fontSize: 13,
+            padding: 0,
+            marginBottom: 14,
+            cursor: 'pointer',
+          }}
+        >
+          ← 이전 단계로 (속보 다시 보기)
+        </button>
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           중앙정부 공모 사업 선정
         </h3>
