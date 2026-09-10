@@ -1,5 +1,5 @@
 // src/steps/Step7.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import MaterialIcon from '../components/MaterialIcon';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -11,7 +11,7 @@ const TAGS = [
   { key: 'neutral', label: '상관없어 보임' },
 ];
 
-export default function Step7({ onComplete, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer }) {
+export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange }) {
   const [phase, setPhase] = useState(initialAnswer?.mitigation ? 'writing' : 'classify');
   const [classification, setClassification] = useState(initialAnswer?.classification ?? {});
   const [mitigation, setMitigation] = useState(initialAnswer?.mitigation ?? '');
@@ -27,11 +27,33 @@ export default function Step7({ onComplete, student, token, enrollmentId, stepId
     { skip: Object.keys(classification).length === 0 }
   );
 
+  useEffect(() => {
+    onDraftChange?.({ classification, mitigation });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classification, mitigation]);
+
   if (phase === 'classify') {
     return (
       <div>
         <ProgressHeader projectLabel="TF팀 브리핑" currentStep={7} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
         <div style={{ padding: '20px 20px 26px' }}>
+          {onBack && (
+            <button
+              onClick={onBack}
+              style={{
+                display: 'block',
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-teal)',
+                fontSize: 13,
+                padding: 0,
+                marginBottom: 14,
+                cursor: 'pointer',
+              }}
+            >
+              ← 이전 단계로 (이해관계자 다시 보기)
+            </button>
+          )}
           <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
             트레이드오프 분석
           </h3>
@@ -118,6 +140,21 @@ export default function Step7({ onComplete, student, token, enrollmentId, stepId
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={7} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
       <div style={{ padding: '20px 20px 26px' }}>
+        <button
+          onClick={() => setPhase('classify')}
+          style={{
+            display: 'block',
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-teal)',
+            fontSize: 13,
+            padding: 0,
+            marginBottom: 14,
+            cursor: 'pointer',
+          }}
+        >
+          ← 이전 단계로 (분류 다시 보기)
+        </button>
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           보완책 제안
         </h3>
