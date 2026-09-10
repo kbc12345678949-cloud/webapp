@@ -1,7 +1,7 @@
 // src/steps/Step7.jsx
 import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
-import MaterialIcon from '../components/MaterialIcon';
+import StakeholderIcon from '../components/StakeholderIcon';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
@@ -79,7 +79,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <MaterialIcon type="person" size={18} />
+<StakeholderIcon stakeholderKey={s.stakeholder_key} size={18} />
                   <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-navy)' }}>{s.name}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
