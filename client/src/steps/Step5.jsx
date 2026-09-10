@@ -109,7 +109,7 @@ export default function Step5({ previousChoice, onComplete, onBack, student, tok
         {/* 변경 시: 새 정책 선택 */}
         {decision === 'change' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            {policies.map((p) => (
+{policies.filter((p) => p.id !== previousChoice).map((p) => (
               <button
                 key={p.id}
                 onClick={() => setNewChoice(p.id)}
