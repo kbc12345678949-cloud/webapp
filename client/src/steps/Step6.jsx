@@ -19,12 +19,29 @@ const Row = ({ label, text }) => (
   </div>
 );
 
-export default function Step6({ onComplete, student, stakeholders, loadError }) {
+export default function Step6({ onComplete, onBack, student, stakeholders, loadError }) {
   return (
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={6} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
 
       <div style={{ padding: '20px 20px 26px' }}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              display: 'block',
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-teal)',
+              fontSize: 13,
+              padding: 0,
+              marginBottom: 14,
+              cursor: 'pointer',
+            }}
+          >
+            ← 이전 단계로 (재판단 다시 보기)
+          </button>
+        )}
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           이해관계자 분석
         </h3>
