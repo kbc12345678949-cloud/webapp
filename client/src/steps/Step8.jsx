@@ -1,9 +1,9 @@
 // src/steps/Step8.jsx
-import { useState } from 'react';
-import ProgressHeader from '../components/ProgressHeader';
+import { useState, useEffect } from 'react';
 import { policies } from '../data/policies';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
+import ProgressHeader from '../components/ProgressHeader';
 
 const truncate = (text, n = 40) => (text && text.length > n ? text.slice(0, n) + '…' : text);
 
@@ -51,7 +51,7 @@ function Field({ label, value, onChange, placeholder, rows = 4 }) {
   );
 }
 
-export default function Step8({ step3Answer, step5Answer, step7Answer, onComplete, student, token, enrollmentId, stepId, stakeholders, initialAnswer }) {
+export default function Step8({ step3Answer, step5Answer, step7Answer, onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, initialAnswer, onDraftChange }) {
   const [finalChoice, setFinalChoice] = useState(initialAnswer?.finalChoice ?? step5Answer?.choice ?? null);
   const [coreReason, setCoreReason] = useState(initialAnswer?.coreReason ?? '');
   const [expectedProblem, setExpectedProblem] = useState(initialAnswer?.expectedProblem ?? '');
@@ -76,10 +76,32 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
     { skip: !coreReason && !expectedProblem && !mitigationPlan }
   );
 
+  useEffect(() => {
+    onDraftChange?.({ finalChoice, coreReason, expectedProblem, mitigationPlan });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalChoice, coreReason, expectedProblem, mitigationPlan]);
+
   return (
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={8} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
       <div style={{ padding: '20px 20px 26px' }}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              display: 'block',
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-teal)',
+              fontSize: 13,
+              padding: 0,
+              marginBottom: 14,
+              cursor: 'pointer',
+            }}
+          >
+            ← 이전 단계로 (트레이드오프 다시 보기)
+          </button>
+        )}
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           최종 결정
         </h3>
