@@ -235,7 +235,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={1} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
 
       {/* 자료 진행 점 표시 — 이미 맞힌 자료는 클릭해서 자유롭게 다시 볼 수 있다 */}
-      <div style={{ display: 'flex', gap: 6, padding: '14px 20px 0' }}>
+      <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
         {materials.map((m, i) => {
           const unlocked = i <= index;
           return (
@@ -245,14 +245,25 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
               aria-label={`${m.title}${unlocked ? '' : ' (아직 열리지 않음)'}`}
               style={{
                 flex: 1,
-                height: 4,
-                padding: 0,
+                minHeight: 44, // 시각적으로는 얇은 막대지만, 실제 터치 영역은 넉넉하게 확보
+                padding: '18px 0',
                 border: 'none',
-                borderRadius: 2,
-                background: i <= index ? 'var(--color-teal)' : 'var(--color-border)',
+                background: 'none',
                 cursor: unlocked ? 'pointer' : 'default',
+                display: 'flex',
+                alignItems: 'center',
               }}
-            />
+            >
+              <span
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: 4,
+                  borderRadius: 2,
+                  background: i <= index ? 'var(--color-teal)' : 'var(--color-border)',
+                }}
+              />
+            </button>
           );
         })}
       </div>
