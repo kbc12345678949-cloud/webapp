@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import MaterialIcon from '../components/MaterialIcon';
+import MaterialChart from '../components/MaterialChart';
 import { fetchMaterials } from '../api';
 
 const cardStyle = {
