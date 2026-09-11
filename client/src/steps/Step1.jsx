@@ -1,9 +1,22 @@
 // src/steps/Step1.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import MaterialIcon from '../components/MaterialIcon';
 import MaterialChart from '../components/MaterialChart';
 import { fetchMaterials } from '../api';
+
+const AUTO_ADVANCE_DELAY = 700; // 정답을 맞춘 뒤 다음 자료로 넘어가기 전 잠깐 보여주는 시간(ms)
+
+// 문제 유형별로 실제 정답과 맞는지 판정한다. 단답형은 공백을 무시하고 비교한다.
+function isCorrectAnswer(q, answer) {
+  if (answer === undefined || answer === null || answer === '') return false;
+  if (q.question_type === 'mc') return Number(answer) === Number(q.answer);
+  if (q.question_type === 'ox') return answer === (q.answer === 'true');
+  if (q.question_type === 'short') {
+    return String(answer).trim().replace(/\s/g, '') === String(q.answer).trim().replace(/\s/g, '');
+  }
+  return false;
+}
 
 const cardStyle = {
   background: 'var(--color-card)',
@@ -138,6 +151,9 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
   const [loadError, setLoadError] = useState('');
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { materialKey: [answer, answer, ...] }
+  const [autoAdvancing, setAutoAdvancing] = useState(false);
+  const autoAdvancedRef = useRef(new Set());
+  const goNextRef = useRef(() => {});
 
   useEffect(() => {
     if (!token || !projectId) return;
@@ -145,6 +161,31 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
       .then(setMaterials)
       .catch((err) => setLoadError(err.message));
   }, [token, projectId, trackId, stepId]);
+
+  // 자료가 아직 로딩 중이어도(= materials가 null이어도) 훅 호출 순서는 항상 동일해야 하므로,
+  // 아래 계산들은 materials 유무와 무관하게 안전하게 처리한다.
+  const material = materials?.[index];
+  const currentAnswers = material ? answers[material.material_key] || [] : [];
+  const allCorrect =
+    !!material &&
+    material.questions.length > 0 &&
+    material.questions.every((q, i) => isCorrectAnswer(q, currentAnswers[i]));
+
+  // 확인 문제를 전부 맞히면, 같은 자료를 다시 볼 때(이전 자료로 되돌아왔을 때)는
+  // 자동으로 튕겨나가지 않도록 "이미 자동 전환된 자료" 목록을 기억해둔다.
+  useEffect(() => {
+    if (!allCorrect || autoAdvancedRef.current.has(index)) {
+      setAutoAdvancing(false);
+      return;
+    }
+    autoAdvancedRef.current.add(index);
+    setAutoAdvancing(true);
+    const timer = setTimeout(() => {
+      setAutoAdvancing(false);
+      goNextRef.current();
+    }, AUTO_ADVANCE_DELAY);
+    return () => clearTimeout(timer);
+  }, [allCorrect, index]);
 
   if (loadError) {
     return (
@@ -161,7 +202,6 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
     );
   }
 
-  const material = materials[index];
   const isLast = index === materials.length - 1;
   const isFirst = index === 0;
 
@@ -180,6 +220,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
       setIndex((i) => i + 1);
     }
   };
+  goNextRef.current = goNext;
 
   const goPrev = () => {
     if (!isFirst) setIndex((i) => i - 1);
@@ -232,6 +273,11 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
           ))}
         </div>
 
+        {autoAdvancing && (
+          <p style={{ fontSize: 12.5, color: 'var(--color-teal)', textAlign: 'center', margin: '0 0 8px' }}>
+            정답입니다! 잠시 후 {isLast ? '다음 단계로' : '다음 자료로'} 넘어갑니다...
+          </p>
+        )}
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             onClick={goPrev}
