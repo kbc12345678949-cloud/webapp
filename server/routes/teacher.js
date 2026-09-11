@@ -235,4 +235,101 @@ router.get('/export/:projectId/:classId', requireTeacher, async (req, res) => {
   res.send(csv);
 });
 
+// ---------- 답안 전체 내보내기 (반별, STEP3·5·7·8·9 실제 서술 내용 전부) ----------
+const POLICY_LABEL = {
+  A: 'A안(관광 확대)',
+  B: 'B안(관리형 관광)',
+  C: 'C안(주민 생활권 우선)',
+};
+const DECISION_LABEL = { keep: '유지', change: '변경' };
+const TAG_LABEL = { benefit: '혜택', harm: '불이익', neutral: '무관' };
+
+router.get('/export-answers/:projectId/:classId', requireTeacher, async (req, res) => {
+  const { projectId, classId } = req.params;
+
+  const students = await db.query(
+    `SELECT st.id AS student_id, st.student_no, st.name, e.id AS enrollment_id, e.submitted_at
+     FROM students st
+     LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
+     WHERE st.class_id = $2
+     ORDER BY st.student_no`,
+    [projectId, classId]
+  );
+
+  const responses = await db.query(
+    `SELECT r.enrollment_id, s.step_key, r.answer
+     FROM responses r
+     JOIN steps s ON s.id = r.step_id
+     JOIN enrollments e ON e.id = r.enrollment_id
+     WHERE e.project_id = $1`,
+    [projectId]
+  );
+  const byEnrollment = {}; // { enrollmentId: { step3: {...}, step5: {...}, ... } }
+  responses.rows.forEach((r) => {
+    byEnrollment[r.enrollment_id] = byEnrollment[r.enrollment_id] || {};
+    byEnrollment[r.enrollment_id][r.step_key] = r.answer;
+  });
+
+  const stakeholderRows = await db.query('SELECT stakeholder_key, name FROM stakeholders WHERE project_id = $1', [
+    projectId,
+  ]);
+  const stakeholderName = Object.fromEntries(stakeholderRows.rows.map((s) => [s.stakeholder_key, s.name]));
+
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+  const header = [
+    '학번', '이름', '제출 여부',
+    'STEP3_선택', 'STEP3_근거',
+    'STEP5_결정', 'STEP5_최종선택', 'STEP5_이유',
+    'STEP7_분류결과', 'STEP7_보완책',
+    'STEP8_최종선택', 'STEP8_핵심근거', 'STEP8_예상문제점', 'STEP8_보완방안',
+    'STEP9_분기', 'STEP9_분기답변1', 'STEP9_분기답변2', 'STEP9_성찰1', 'STEP9_성찰2', 'STEP9_성찰3',
+  ];
+  const lines = [header.map(esc).join(',')];
+
+  for (const s of students.rows) {
+    const a = byEnrollment[s.enrollment_id] || {};
+    const step3 = a.step3 || {};
+    const step5 = a.step5 || {};
+    const step7 = a.step7 || {};
+    const step8 = a.step8 || {};
+    const step9 = a.step9 || {};
+
+    const classificationText = step7.classification
+      ? Object.entries(step7.classification)
+          .map(([key, tag]) => `${stakeholderName[key] || key}(${TAG_LABEL[tag] || tag})`)
+          .join(', ')
+      : '';
+
+    const row = [
+      s.student_no,
+      s.name,
+      s.submitted_at ? '제출 완료' : '미제출',
+      POLICY_LABEL[step3.choice] || '',
+      step3.reason || '',
+      DECISION_LABEL[step5.decision] || '',
+      POLICY_LABEL[step5.choice] || '',
+      step5.reason || '',
+      classificationText,
+      step7.mitigation || '',
+      POLICY_LABEL[step8.finalChoice] || '',
+      step8.coreReason || '',
+      step8.expectedProblem || '',
+      step8.mitigationPlan || '',
+      step9.branch === 'had' ? '있었다' : step9.branch === 'none' ? '없었다' : '',
+      step9.branch === 'had' ? step9.hadPoint || '' : step9.noneReason || '',
+      step9.branch === 'had' ? step9.hadChanged || '' : '',
+      step9.self1 || '',
+      step9.self2 || '',
+      step9.self3 || '',
+    ];
+    lines.push(row.map(esc).join(','));
+  }
+
+  const csv = '\uFEFF' + lines.join('\r\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="answers_${projectId}_${classId}.csv"`);
+  res.send(csv);
+});
+
 module.exports = { router, requireTeacher };
