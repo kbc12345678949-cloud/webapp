@@ -45,14 +45,17 @@ function Bars({ bars, unit }) {
   const max = Math.max(...bars.map((b) => b.value));
   const barWidth = 64;
   const gap = 28;
-  const chartHeight = 110;
+  const chartHeight = 90;
+  const topPadding = 26; // 가장 높은 막대 위 숫자 글자가 잘리지 않도록 여유를 둔다
+  const bottomLabelHeight = 30;
   const width = bars.length * (barWidth + gap) + gap;
+  const svgHeight = topPadding + chartHeight + bottomLabelHeight;
 
   return (
     <svg
       width="100%"
-      height={chartHeight + 40}
-      viewBox={`0 0 ${width} ${chartHeight + 40}`}
+      height={svgHeight}
+      viewBox={`0 0 ${width} ${svgHeight}`}
       style={{ maxWidth: 320, display: 'block', margin: '0 auto' }}
       role="img"
       aria-label={bars.map((b) => `${b.label} ${b.value}${unit}`).join(', ')}
@@ -60,13 +63,13 @@ function Bars({ bars, unit }) {
       {bars.map((b, i) => {
         const barHeight = Math.max((b.value / max) * chartHeight, 3);
         const x = gap + i * (barWidth + gap);
-        const y = chartHeight - barHeight + 10;
+        const y = topPadding + (chartHeight - barHeight);
         return (
           <g key={b.label}>
             <rect x={x} y={y} width={barWidth} height={barHeight} rx={4} fill={b.color || 'var(--color-teal)'} />
             <text
               x={x + barWidth / 2}
-              y={y - 6}
+              y={y - 8}
               textAnchor="middle"
               fontSize="12"
               fontWeight="500"
@@ -76,7 +79,7 @@ function Bars({ bars, unit }) {
             </text>
             <text
               x={x + barWidth / 2}
-              y={chartHeight + 26}
+              y={topPadding + chartHeight + 20}
               textAnchor="middle"
               fontSize="11"
               fill="var(--color-text-muted)"
