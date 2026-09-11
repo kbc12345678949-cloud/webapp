@@ -124,35 +124,32 @@ function QuestionBlock({ q, answer, onChange }) {
         <MCOptions options={q.options} selectedIndex={answer} correctIndex={correctIndex} onSelect={onChange} />
       )}
       {q.question_type === 'short' && (
-        <>
-          <input
-            type="text"
-            value={answer || ''}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="답을 입력하세요"
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: '1.5px solid var(--color-border)',
-              fontSize: 13.5,
-              fontFamily: 'var(--font-family)',
-            }}
-          />
-          <p style={{ fontSize: 12, color: 'var(--color-teal)', margin: '6px 0 0' }}>정답: {q.answer}</p>
-        </>
+        <input
+          type="text"
+          value={answer || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="답을 입력하세요"
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: '1.5px solid var(--color-border)',
+            fontSize: 13.5,
+            fontFamily: 'var(--font-family)',
+          }}
+        />
       )}
     </div>
   );
 }
 
-export default function Step1({ onComplete, student, token, projectId, trackId, stepId }) {
+export default function Step1({ onComplete, student, token, projectId, trackId, stepId, initialAnswers, initialIndex, onDraftChange }) {
   const [materials, setMaterials] = useState(null);
   const [loadError, setLoadError] = useState('');
-  const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState({}); // { materialKey: [answer, answer, ...] }
+  const [index, setIndex] = useState(initialIndex ?? 0);
+  const [answers, setAnswers] = useState(initialAnswers ?? {}); // { materialKey: [answer, answer, ...] }
   const [autoAdvancing, setAutoAdvancing] = useState(false);
-  const autoAdvancedRef = useRef(new Set());
+  const autoAdvancedRef = useRef(new Set(Array.from({ length: initialIndex ?? 0 }, (_, i) => i)));
   const goNextRef = useRef(() => {});
 
   useEffect(() => {
@@ -161,6 +158,13 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
       .then(setMaterials)
       .catch((err) => setLoadError(err.message));
   }, [token, projectId, trackId, stepId]);
+
+  // STEP3 등으로 갔다가 "이전 단계로" 되돌아왔을 때도 풀었던 자료·위치가 유지되도록,
+  // 바뀔 때마다 상위(App)에도 알려서 App이 기억하게 한다.
+  useEffect(() => {
+    onDraftChange?.({ answers, index });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, index]);
 
   // 자료가 아직 로딩 중이어도(= materials가 null이어도) 훅 호출 순서는 항상 동일해야 하므로,
   // 아래 계산들은 materials 유무와 무관하게 안전하게 처리한다.
@@ -230,19 +234,27 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={1} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
 
-      {/* 자료 진행 점 표시 */}
+      {/* 자료 진행 점 표시 — 이미 맞힌 자료는 클릭해서 자유롭게 다시 볼 수 있다 */}
       <div style={{ display: 'flex', gap: 6, padding: '14px 20px 0' }}>
-        {materials.map((m, i) => (
-          <div
-            key={m.material_key}
-            style={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              background: i <= index ? 'var(--color-teal)' : 'var(--color-border)',
-            }}
-          />
-        ))}
+        {materials.map((m, i) => {
+          const unlocked = i <= index;
+          return (
+            <button
+              key={m.material_key}
+              onClick={() => unlocked && setIndex(i)}
+              aria-label={`${m.title}${unlocked ? '' : ' (아직 열리지 않음)'}`}
+              style={{
+                flex: 1,
+                height: 4,
+                padding: 0,
+                border: 'none',
+                borderRadius: 2,
+                background: i <= index ? 'var(--color-teal)' : 'var(--color-border)',
+                cursor: unlocked ? 'pointer' : 'default',
+              }}
+            />
+          );
+        })}
       </div>
 
       <div style={{ padding: '16px 20px 26px' }}>
