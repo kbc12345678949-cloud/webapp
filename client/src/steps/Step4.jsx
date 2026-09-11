@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { policies } from '../data/policies';
 import { fetchMaterials } from '../api';
+import MaterialChart from '../components/MaterialChart';
 
 export default function Step4({ previousChoice, onComplete, onBack, student, token, projectId, stepId }) {
   const [phase, setPhase] = useState('alert'); // 'alert' | 'materials'
@@ -145,12 +146,10 @@ export default function Step4({ previousChoice, onComplete, onBack, student, tok
                 marginBottom: 12,
               }}
             >
-              <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 6px' }}>
-                {m.title}
-              </p>
               <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-text-body)', margin: 0 }}>
                 {m.body}
               </p>
+              <MaterialChart materialKey={m.material_key} />
             </div>
           ))}
 
