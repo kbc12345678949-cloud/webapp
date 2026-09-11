@@ -115,15 +115,25 @@ router.get('/progress/:projectId/:classId', requireTeacher, async (req, res) => 
 // ---------- 실시간 집계 보기 (STEP3·5·8 전용, 선택형 답안 분포) ----------
 router.get('/distribution/:projectId/:stepKey', requireTeacher, async (req, res) => {
   const { projectId, stepKey } = req.params;
+  const { classId } = req.query; // 없으면 전체 반 합산, 있으면 그 반만
   const step = await db.query('SELECT id FROM steps WHERE project_id = $1 AND step_key = $2', [projectId, stepKey]);
   if (step.rows.length === 0) return res.status(404).json({ error: '스텝을 찾을 수 없습니다.' });
+
+  const params = [step.rows[0].id];
+  let classFilter = '';
+  if (classId) {
+    classFilter = 'AND st.class_id = $2';
+    params.push(classId);
+  }
 
   const { rows } = await db.query(
     `SELECT COALESCE(r.answer->>'choice', r.answer->>'finalChoice') AS choice, COUNT(*) AS count
      FROM responses r
-     WHERE r.step_id = $1
+     JOIN enrollments e ON e.id = r.enrollment_id
+     JOIN students st ON st.id = e.student_id
+     WHERE r.step_id = $1 ${classFilter}
      GROUP BY COALESCE(r.answer->>'choice', r.answer->>'finalChoice')`,
-    [step.rows[0].id]
+    params
   );
   const total = rows.reduce((sum, r) => sum + Number(r.count), 0);
   res.json({ stepKey, total, distribution: rows, note: '지금까지 제출한 인원 기준' });
