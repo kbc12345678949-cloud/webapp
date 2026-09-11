@@ -215,6 +215,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
           <p style={{ fontSize: 13.5, lineHeight: 1.7, color: 'var(--color-text-body)', margin: 0 }}>
             {material.body}
           </p>
+          <MaterialChart materialKey={material.material_key} />
         </div>
 
         <div style={cardStyle}>
