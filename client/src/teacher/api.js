@@ -59,4 +59,11 @@ export const teacherApi = {
     if (!res.ok) throw new Error(`다운로드 실패 (${res.status})`);
     return res.blob();
   },
+  exportAnswers: async (token, projectId, classId) => {
+    const res = await fetch(`${BASE_URL}/api/teacher/export-answers/${projectId}/${classId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`다운로드 실패 (${res.status})`);
+    return res.blob();
+  },
 };
