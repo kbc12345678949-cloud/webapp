@@ -119,10 +119,10 @@ router.get('/distribution/:projectId/:stepKey', requireTeacher, async (req, res)
   if (step.rows.length === 0) return res.status(404).json({ error: '스텝을 찾을 수 없습니다.' });
 
   const { rows } = await db.query(
-    `SELECT r.answer->>'choice' AS choice, COUNT(*) AS count
+    `SELECT COALESCE(r.answer->>'choice', r.answer->>'finalChoice') AS choice, COUNT(*) AS count
      FROM responses r
      WHERE r.step_id = $1
-     GROUP BY r.answer->>'choice'`,
+     GROUP BY COALESCE(r.answer->>'choice', r.answer->>'finalChoice')`,
     [step.rows[0].id]
   );
   const total = rows.reduce((sum, r) => sum + Number(r.count), 0);
