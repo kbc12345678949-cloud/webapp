@@ -61,6 +61,7 @@ export default function App() {
   const [student, setStudent] = useState(null);
   const [session, setSession] = useState(null); // { project, steps, enrollment }
   const [loadError, setLoadError] = useState('');
+  const [step1Progress, setStep1Progress] = useState({ answers: {}, index: 0 });
   const [step3Answer, setStep3Answer] = useState(null);
   const [step5Answer, setStep5Answer] = useState(null);
   const [step7Answer, setStep7Answer] = useState(null);
@@ -147,6 +148,9 @@ export default function App() {
           token={student?.token}
           projectId={session?.project.id}
           stepId={stepId('step1')}
+          initialAnswers={step1Progress.answers}
+          initialIndex={step1Progress.index}
+          onDraftChange={setStep1Progress}
           onComplete={() => setScreen('step3')}
         />
       )}
