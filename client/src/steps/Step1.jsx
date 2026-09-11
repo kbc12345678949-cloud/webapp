@@ -7,13 +7,21 @@ import { fetchMaterials } from '../api';
 
 const AUTO_ADVANCE_DELAY = 700; // 정답을 맞춘 뒤 다음 자료로 넘어가기 전 잠깐 보여주는 시간(ms)
 
-// 문제 유형별로 실제 정답과 맞는지 판정한다. 단답형은 공백을 무시하고 비교한다.
+// 문제 유형별로 실제 정답과 맞는지 판정한다.
+// 단답형은 공백을 무시하고 비교하되, 둘 다 숫자로 읽히면("2"와 "2.0"처럼 표기만 다른 경우)
+// 숫자로 비교해서 사소한 표기 차이로 막히지 않게 한다.
 function isCorrectAnswer(q, answer) {
   if (answer === undefined || answer === null || answer === '') return false;
   if (q.question_type === 'mc') return Number(answer) === Number(q.answer);
   if (q.question_type === 'ox') return answer === (q.answer === 'true');
   if (q.question_type === 'short') {
-    return String(answer).trim().replace(/\s/g, '') === String(q.answer).trim().replace(/\s/g, '');
+    const a = String(answer).trim().replace(/\s/g, '');
+    const b = String(q.answer).trim().replace(/\s/g, '');
+    if (a === '' || b === '') return false;
+    const numA = Number(a);
+    const numB = Number(b);
+    if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA === numB;
+    return a === b;
   }
   return false;
 }
