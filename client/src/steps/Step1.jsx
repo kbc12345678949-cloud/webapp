@@ -297,10 +297,11 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
           </button>
           <button
             onClick={goNext}
+            disabled={!allCorrect}
             style={{
               flex: 2,
-              background: 'var(--color-navy)',
-              color: 'var(--color-navy-text-on)',
+              background: allCorrect ? 'var(--color-navy)' : 'var(--color-border)',
+              color: allCorrect ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
               border: 'none',
               borderRadius: 'var(--radius-button)',
               padding: 14,
@@ -311,6 +312,11 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
             {isLast ? '자료 확인 완료' : '다음 자료'}
           </button>
         </div>
+        {!allCorrect && (
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8, textAlign: 'center' }}>
+            확인 문제를 맞혀야 다음 자료로 넘어갈 수 있어요.
+          </p>
+        )}
       </div>
     </div>
   );
