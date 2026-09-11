@@ -11,6 +11,7 @@ export default function ProgressOverview({ token, projectId }) {
   const [selected, setSelected] = useState(null); // { name, enrollment_id }
   const [responses, setResponses] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingAnswers, setDownloadingAnswers] = useState(false);
 
   useEffect(() => {
     teacherApi
@@ -52,6 +53,26 @@ export default function ProgressOverview({ token, projectId }) {
       setError(err.message);
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const downloadAnswers = async () => {
+    if (!classId) return;
+    setDownloadingAnswers(true);
+    try {
+      const blob = await teacherApi.exportAnswers(token, projectId, classId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `답안전체_${className}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingAnswers(false);
     }
   };
 
@@ -108,6 +129,20 @@ export default function ProgressOverview({ token, projectId }) {
           }}
         >
           {downloading ? '다운로드 중...' : '결과 다운로드(CSV)'}
+        </button>
+        <button
+          onClick={downloadAnswers}
+          disabled={downloadingAnswers}
+          style={{
+            background: '#FFFFFF',
+            color: 'var(--color-navy)',
+            border: '1.5px solid var(--color-navy)',
+            borderRadius: 6,
+            padding: '8px 14px',
+            fontSize: 13,
+          }}
+        >
+          {downloadingAnswers ? '다운로드 중...' : '답안 전체 내보내기(CSV)'}
         </button>
       </div>
 
