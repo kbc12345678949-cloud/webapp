@@ -177,6 +177,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
   // 자료가 아직 로딩 중이어도(= materials가 null이어도) 훅 호출 순서는 항상 동일해야 하므로,
   // 아래 계산들은 materials 유무와 무관하게 안전하게 처리한다.
   const material = materials?.[index];
+  const isLast = materials ? index === materials.length - 1 : false;
   const currentAnswers = material ? answers[material.material_key] || [] : [];
   const allCorrect =
     !!material &&
@@ -185,8 +186,11 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
 
   // 확인 문제를 전부 맞히면, 같은 자료를 다시 볼 때(이전 자료로 되돌아왔을 때)는
   // 자동으로 튕겨나가지 않도록 "이미 자동 전환된 자료" 목록을 기억해둔다.
+  // 다만 마지막 자료(다음 단계=STEP3로 넘어가는 자료)는 자동전환하지 않는다.
+  // STEP3에서 되돌아와 마지막 자료를 다시 확인할 때, 이미 맞힌 정답이라 곧바로
+  // 다시 튕겨나가 버리는 문제가 있었기 때문이다 — 이 자료만큼은 항상 버튼을 직접 눌러 넘어가게 한다.
   useEffect(() => {
-    if (!allCorrect || autoAdvancedRef.current.has(index)) {
+    if (!allCorrect || isLast || autoAdvancedRef.current.has(index)) {
       setAutoAdvancing(false);
       return;
     }
@@ -197,7 +201,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
       goNextRef.current();
     }, AUTO_ADVANCE_DELAY);
     return () => clearTimeout(timer);
-  }, [allCorrect, index]);
+  }, [allCorrect, isLast, index]);
 
   if (loadError) {
     return (
@@ -214,7 +218,6 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
     );
   }
 
-  const isLast = index === materials.length - 1;
   const isFirst = index === 0;
 
   const setAnswer = (qIdx, value) => {
@@ -253,7 +256,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
               aria-label={`${m.title}${unlocked ? '' : ' (아직 열리지 않음)'}`}
               style={{
                 flex: 1,
-                minHeight: 44, // 시각적으로는 얇은 막대지만, 실제 터치 영역은 넉넉하게 확보
+                minHeight: 44,
                 padding: '18px 0',
                 border: 'none',
                 background: 'none',
