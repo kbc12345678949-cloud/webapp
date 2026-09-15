@@ -6,11 +6,10 @@ import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
 const TAGS = [
-  { key: 'benefit', label: '혜택 집단' },
-  { key: 'harm', label: '불이익 집단' },
-  { key: 'neutral', label: '상관없어 보임' },
+  { key: 'benefit', label: '혜택 집단', color: '#4A90D9' },
+  { key: 'harm', label: '불이익 집단', color: 'var(--color-coral)' },
+  { key: 'neutral', label: '상관없어 보임', color: '#000000' },
 ];
-
 export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange }) {
   const [phase, setPhase] = useState(initialAnswer?.mitigation ? 'writing' : 'classify');
   const [classification, setClassification] = useState(initialAnswer?.classification ?? {});
@@ -95,8 +94,8 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
                           padding: '4px',
                           fontSize: 12,
                           borderRadius: 6,
-                          border: `1.5px solid ${active ? 'var(--color-teal)' : 'var(--color-border)'}`,
-                          background: active ? 'var(--color-teal)' : 'var(--color-card)',
+                          border: `1.5px solid ${active ? t.color : 'var(--color-border)'}`,
+                          background: active ? t.color : 'var(--color-card)',
                           color: active ? '#FFFFFF' : 'var(--color-text)',
                         }}
                       >
