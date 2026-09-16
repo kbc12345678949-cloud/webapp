@@ -2,14 +2,16 @@
 import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { saveResponse, submitFinal } from '../api';
+import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 
-const MIN_BRANCH_HAD = 30; // "있었다" 경로: 질문 2개 × 30자 = 60자
-const MIN_BRANCH_NONE = 60; // "없었다" 경로: 질문 1개 × 60자 = 60자 (동일 총량)
-const MIN_SELF = 30;
+const MIN_BRANCH_HAD = 45; // "있었다" 경로: 질문 2개 × 45자 = 90자
+const MIN_BRANCH_NONE = 90; // "없었다" 경로: 질문 1개 × 90자 = 90자 (동일 총량)
+const MIN_SELF = 45;
 
 function TextField({ label, value, onChange, min, placeholder }) {
   const count = value.trim().length;
-  const ok = count >= min;
+  const abuse = hasRepeatedCharacterAbuse(value);
+  const ok = count >= min && !abuse;
   return (
     <div style={{ marginBottom: 16 }}>
       <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 8px' }}>{label}</p>
@@ -28,9 +30,15 @@ function TextField({ label, value, onChange, min, placeholder }) {
           resize: 'vertical',
         }}
       />
-      <span style={{ fontSize: 11.5, color: ok ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
-        {count} / {min}자 이상
-      </span>
+      {abuse ? (
+        <span style={{ fontSize: 11.5, color: 'var(--color-coral)' }}>
+          같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
+        </span>
+      ) : (
+        <span style={{ fontSize: 11.5, color: ok ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
+          {count} / {min}자 이상
+        </span>
+      )}
     </div>
   );
 }
@@ -49,13 +57,21 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
 
   const branchOk =
     branch === 'had'
-      ? hadPoint.trim().length >= MIN_BRANCH_HAD && hadChanged.trim().length >= MIN_BRANCH_HAD
+      ? hadPoint.trim().length >= MIN_BRANCH_HAD &&
+        !hasRepeatedCharacterAbuse(hadPoint) &&
+        hadChanged.trim().length >= MIN_BRANCH_HAD &&
+        !hasRepeatedCharacterAbuse(hadChanged)
       : branch === 'none'
-      ? noneReason.trim().length >= MIN_BRANCH_NONE
+      ? noneReason.trim().length >= MIN_BRANCH_NONE && !hasRepeatedCharacterAbuse(noneReason)
       : false;
 
   const selfOk =
-    self1.trim().length >= MIN_SELF && self2.trim().length >= MIN_SELF && self3.trim().length >= MIN_SELF;
+    self1.trim().length >= MIN_SELF &&
+    !hasRepeatedCharacterAbuse(self1) &&
+    self2.trim().length >= MIN_SELF &&
+    !hasRepeatedCharacterAbuse(self2) &&
+    self3.trim().length >= MIN_SELF &&
+    !hasRepeatedCharacterAbuse(self3);
 
   const canSubmit = branchOk && selfOk;
 
