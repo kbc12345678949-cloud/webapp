@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import StakeholderIcon from '../components/StakeholderIcon';
+import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
@@ -10,6 +11,7 @@ const TAGS = [
   { key: 'harm', label: '불이익 집단', color: 'var(--color-coral)' },
   { key: 'neutral', label: '상관없어 보임', color: '#000000' },
 ];
+
 export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange }) {
   const [phase, setPhase] = useState(initialAnswer?.mitigation ? 'writing' : 'classify');
   const [classification, setClassification] = useState(initialAnswer?.classification ?? {});
@@ -17,6 +19,8 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
 
   const allClassified = stakeholders && stakeholders.every((s) => classification[s.stakeholder_key]);
   const harmGroup = stakeholders ? stakeholders.filter((s) => classification[s.stakeholder_key] === 'harm') : [];
+  const mitigationHasAbuse = hasRepeatedCharacterAbuse(mitigation);
+  const mitigationCanSubmit = mitigation.trim().length > 0 && !mitigationHasAbuse;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
@@ -78,7 +82,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-<StakeholderIcon stakeholderKey={s.stakeholder_key} size={18} />
+                  <StakeholderIcon stakeholderKey={s.stakeholder_key} size={18} />
                   <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-navy)' }}>{s.name}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -217,12 +221,12 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         </div>
 
         <button
-          disabled={mitigation.trim().length === 0}
+          disabled={!mitigationCanSubmit}
           onClick={async () => { await saveResponse(token, enrollmentId, stepId, { classification, mitigation }); onComplete({ classification, mitigation }); }}
           style={{
             width: '100%',
-            background: mitigation.trim() ? 'var(--color-navy)' : 'var(--color-border)',
-            color: mitigation.trim() ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
+            background: mitigationCanSubmit ? 'var(--color-navy)' : 'var(--color-border)',
+            color: mitigationCanSubmit ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
             border: 'none',
             borderRadius: 'var(--radius-button)',
             padding: 14,
@@ -232,6 +236,11 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         >
           다음 단계로
         </button>
+        {mitigation.trim().length > 0 && mitigationHasAbuse && (
+          <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
+            같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
+          </p>
+        )}
       </div>
     </div>
   );
