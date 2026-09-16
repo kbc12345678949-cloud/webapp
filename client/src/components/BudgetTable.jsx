@@ -32,7 +32,7 @@ export default function BudgetTable() {
   return (
     <div style={{ margin: '14px 0 4px' }}>
       <p style={{ fontSize: 12, color: 'var(--color-teal)', fontWeight: 500, margin: '0 0 8px' }}>
-        포기할 항목을 직접 선택해보세요 (부족한 {SHORTFALL}억 원을 채워야 합니다)
+        포기할 항목을 직접 선택해보세요 (초과되는 {SHORTFALL}억 원을 해결하려면, 특정 항목을 제거해야 합니다)
       </p>
 
       {ITEMS.map((it) => {
