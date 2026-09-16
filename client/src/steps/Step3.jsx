@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { policies, MIN_CHARS_STEP3 } from '../data/policies';
+import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
@@ -11,7 +12,8 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
 
   const charCount = reason.trim().length;
   const meetsMin = charCount >= MIN_CHARS_STEP3;
-  const canSubmit = selected && meetsMin;
+  const hasAbuse = hasRepeatedCharacterAbuse(reason);
+  const canSubmit = selected && meetsMin && !hasAbuse;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
@@ -174,7 +176,11 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
         </button>
         {!canSubmit && (
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
-            {!selected ? '정책안을 선택해주세요.' : `${MIN_CHARS_STEP3 - charCount}자 더 작성해주세요.`}
+            {!selected
+              ? '정책안을 선택해주세요.'
+              : hasAbuse
+              ? '같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.'
+              : `${MIN_CHARS_STEP3 - charCount}자 더 작성해주세요.`}
           </p>
         )}
       </div>
