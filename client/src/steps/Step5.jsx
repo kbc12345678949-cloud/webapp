@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { policies } from '../data/policies';
+import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
-const MIN_CHARS_STEP5 = 50;
+const MIN_CHARS_STEP5 = 75;
 
 export default function Step5({ previousChoice, onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
   const [decision, setDecision] = useState(initialAnswer?.decision ?? null);
@@ -17,8 +18,9 @@ export default function Step5({ previousChoice, onComplete, onBack, student, tok
   const prevPolicy = policies.find((p) => p.id === previousChoice);
   const charCount = reason.trim().length;
   const meetsMin = charCount >= MIN_CHARS_STEP5;
+  const hasAbuse = hasRepeatedCharacterAbuse(reason);
   const decisionReady = decision === 'keep' || (decision === 'change' && newChoice);
-  const canSubmit = decisionReady && meetsMin;
+  const canSubmit = decisionReady && meetsMin && !hasAbuse;
   const finalChoice = decision === 'change' ? newChoice : previousChoice;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
@@ -109,7 +111,7 @@ export default function Step5({ previousChoice, onComplete, onBack, student, tok
         {/* 변경 시: 새 정책 선택 */}
         {decision === 'change' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-{policies.filter((p) => p.id !== previousChoice).map((p) => (
+            {policies.filter((p) => p.id !== previousChoice).map((p) => (
               <button
                 key={p.id}
                 onClick={() => setNewChoice(p.id)}
@@ -191,6 +193,8 @@ export default function Step5({ previousChoice, onComplete, onBack, student, tok
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
             {!decisionReady
               ? '유지 또는 변경 여부를 선택해주세요.'
+              : hasAbuse
+              ? '같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.'
               : `${MIN_CHARS_STEP5 - charCount}자 더 작성해주세요.`}
           </p>
         )}
