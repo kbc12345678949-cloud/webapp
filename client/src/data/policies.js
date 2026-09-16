@@ -20,4 +20,4 @@ export const policies = [
   },
 ];
 
-export const MIN_CHARS_STEP3 = 100;
+export const MIN_CHARS_STEP3 = 150;
