@@ -4,6 +4,7 @@ import ProgressHeader from '../components/ProgressHeader';
 import { policies } from '../data/policies';
 import { fetchMaterials } from '../api';
 import MaterialChart from '../components/MaterialChart';
+import BudgetTable from '../components/BudgetTable';
 
 export default function Step4({ previousChoice, onComplete, onBack, student, token, projectId, stepId }) {
   const [phase, setPhase] = useState('alert'); // 'alert' | 'materials'
@@ -150,6 +151,7 @@ export default function Step4({ previousChoice, onComplete, onBack, student, tok
                 {m.body}
               </p>
               <MaterialChart materialKey={m.material_key} />
+              {m.material_key === 'n2' && <BudgetTable />}
             </div>
           ))}
 
