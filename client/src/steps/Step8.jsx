@@ -1,6 +1,7 @@
 // src/steps/Step8.jsx
 import { useState, useEffect } from 'react';
 import { policies } from '../data/policies';
+import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 import ProgressHeader from '../components/ProgressHeader';
@@ -66,7 +67,12 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
     step7Answer?.classification &&
     stakeholders?.filter((s) => step7Answer.classification[s.stakeholder_key] === 'benefit').map((s) => s.name);
 
-  const canSubmit = finalChoice && coreReason.trim() && expectedProblem.trim() && mitigationPlan.trim();
+  const fieldsHaveAbuse =
+    hasRepeatedCharacterAbuse(coreReason) ||
+    hasRepeatedCharacterAbuse(expectedProblem) ||
+    hasRepeatedCharacterAbuse(mitigationPlan);
+  const canSubmit =
+    finalChoice && coreReason.trim() && expectedProblem.trim() && mitigationPlan.trim() && !fieldsHaveAbuse;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
@@ -206,6 +212,11 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
         >
           다음 단계로
         </button>
+        {fieldsHaveAbuse && (
+          <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
+            같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
+          </p>
+        )}
       </div>
     </div>
   );
