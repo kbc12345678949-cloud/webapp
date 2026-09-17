@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { policies } from '../data/policies';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
+import ReviewPanel from '../components/ReviewPanel';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 import ProgressHeader from '../components/ProgressHeader';
@@ -108,6 +109,7 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
             ← 이전 단계로 (트레이드오프 다시 보기)
           </button>
         )}
+        <ReviewPanel currentStep={8} step3Answer={step3Answer} step5Answer={step5Answer} step7Answer={step7Answer} stakeholders={stakeholders} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           최종 결정
         </h3>
