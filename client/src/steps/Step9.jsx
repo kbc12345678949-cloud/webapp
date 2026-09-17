@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { saveResponse, submitFinal } from '../api';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
+import ReviewPanel from '../components/ReviewPanel';
 
 const MIN_BRANCH_HAD = 45; // "있었다" 경로: 질문 2개 × 45자 = 90자
 const MIN_BRANCH_NONE = 90; // "없었다" 경로: 질문 1개 × 90자 = 90자 (동일 총량)
@@ -43,7 +44,7 @@ function TextField({ label, value, onChange, min, placeholder }) {
   );
 }
 
-export default function Step9({ onSubmit, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
+export default function Step9({ onSubmit, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange, step3Answer, step5Answer, step7Answer, step8Answer, stakeholders }) {
   const [branch, setBranch] = useState(initialAnswer?.branch ?? null);
   const [hadPoint, setHadPoint] = useState(initialAnswer?.hadPoint ?? '');
   const [hadChanged, setHadChanged] = useState(initialAnswer?.hadChanged ?? '');
@@ -111,6 +112,14 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
             ← 이전 단계로 (최종 결정 다시 보기)
           </button>
         )}
+        <ReviewPanel
+          currentStep={9}
+          step3Answer={step3Answer}
+          step5Answer={step5Answer}
+          step7Answer={step7Answer}
+          step8Answer={step8Answer}
+          stakeholders={stakeholders}
+        />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           성찰
         </h3>
