@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { policies } from '../data/policies';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
+import ReviewPanel from '../components/ReviewPanel';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
 const MIN_CHARS_STEP5 = 75;
 
-export default function Step5({ previousChoice, onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
+export default function Step5({ previousChoice, step3Answer, onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
   const [decision, setDecision] = useState(initialAnswer?.decision ?? null);
   const [newChoice, setNewChoice] = useState(
     initialAnswer?.decision === 'change' ? initialAnswer.choice : null
@@ -58,6 +59,7 @@ export default function Step5({ previousChoice, onComplete, onBack, student, tok
             ← 이전 단계로 (새로운 상황 다시 보기)
           </button>
         )}
+        <ReviewPanel currentStep={5} step3Answer={step3Answer} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           재판단
         </h3>
