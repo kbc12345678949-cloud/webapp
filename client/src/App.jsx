@@ -100,9 +100,9 @@ export default function App() {
   };
 
   // 이해관계자는 STEP6·7 둘 다 같은 목록을 쓰므로, STEP6에 진입할 때 한 번만 가져와 공유한다.
-  // (새로고침 후 STEP7·8로 바로 복귀하는 경우에도 필요하므로 STEP7·8 진입 시에도 함께 확인한다)
+  // (새로고침 후 STEP7·8·9로 바로 복귀하는 경우에도 필요하므로 진입 시에도 함께 확인한다)
   useEffect(() => {
-    if (!['step6', 'step7', 'step8', 'done'].includes(screen)) return;
+    if (!['step6', 'step7', 'step8', 'step9', 'done'].includes(screen)) return;
     if (stakeholders || !student?.token || !session?.project.id) return;
     fetchStakeholders(student.token, session.project.id)
       .then(setStakeholders)
@@ -176,6 +176,7 @@ export default function App() {
           projectId={session?.project.id}
           stepId={stepId('step4')}
           previousChoice={step3Answer?.choice}
+          step3Answer={step3Answer}
           onBack={() => setScreen('step3')}
           onComplete={() => setScreen('step5')}
         />
@@ -187,6 +188,7 @@ export default function App() {
           enrollmentId={session?.enrollment.id}
           stepId={stepId('step5')}
           previousChoice={step3Answer?.choice}
+          step3Answer={step3Answer}
           initialAnswer={step5Answer}
           onDraftChange={setStep5Answer}
           onBack={() => setScreen('step4')}
@@ -201,6 +203,8 @@ export default function App() {
           student={student}
           stakeholders={stakeholders}
           loadError={stakeholderError}
+          step3Answer={step3Answer}
+          step5Answer={step5Answer}
           onBack={() => setScreen('step5')}
           onComplete={() => setScreen('step7')}
         />
@@ -215,6 +219,8 @@ export default function App() {
           loadError={stakeholderError}
           initialAnswer={step7Answer}
           onDraftChange={setStep7Answer}
+          step3Answer={step3Answer}
+          step5Answer={step5Answer}
           onBack={() => setScreen('step6')}
           onComplete={(data) => {
             setStep7Answer(data);
@@ -249,6 +255,11 @@ export default function App() {
           stepId={stepId('step9')}
           initialAnswer={step9Answer}
           onDraftChange={setStep9Answer}
+          step3Answer={step3Answer}
+          step5Answer={step5Answer}
+          step7Answer={step7Answer}
+          step8Answer={step8Answer}
+          stakeholders={stakeholders}
           onBack={() => setScreen('step8')}
           onSubmit={() => setScreen('done')}
         />
