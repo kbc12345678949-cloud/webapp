@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import StakeholderIcon from '../components/StakeholderIcon';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
+import ReviewPanel from '../components/ReviewPanel';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
@@ -12,7 +13,7 @@ const TAGS = [
   { key: 'neutral', label: '상관없어 보임', color: '#000000' },
 ];
 
-export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange }) {
+export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange, step3Answer, step5Answer }) {
   const [phase, setPhase] = useState(initialAnswer?.mitigation ? 'writing' : 'classify');
   const [classification, setClassification] = useState(initialAnswer?.classification ?? {});
   const [mitigation, setMitigation] = useState(initialAnswer?.mitigation ?? '');
@@ -57,6 +58,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
               ← 이전 단계로 (이해관계자 다시 보기)
             </button>
           )}
+          <ReviewPanel currentStep={7} step3Answer={step3Answer} step5Answer={step5Answer} stakeholders={stakeholders} />
           <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
             트레이드오프 분석
           </h3>
@@ -158,6 +160,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         >
           ← 이전 단계로 (분류 다시 보기)
         </button>
+        <ReviewPanel currentStep={7} step3Answer={step3Answer} step5Answer={step5Answer} stakeholders={stakeholders} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           보완책 제안
         </h3>
