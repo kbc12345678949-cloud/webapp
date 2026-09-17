@@ -174,7 +174,7 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
           value={expectedProblem}
           onChange={setExpectedProblem}
           placeholder="이 정책을 시행했을 때 예상되는 문제점을 서술해주세요."
-          hints={['STEP7에서 "불이익 집단"으로 분류했던 사람들에게, 여전히 남아있는 불만은 무엇일까요?']}
+          hints={['STEP7에서 "불이익 집단"으로 분류했던 사람들에게, 남아있는 불만은 무엇일까요?']}
         />
 
         {/* 보완 방안은 STEP7에서 이미 작성한 보완책을 그대로 최종 결정에 포함시킨다(다시 쓰지 않음) */}
