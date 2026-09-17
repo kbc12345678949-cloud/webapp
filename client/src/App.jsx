@@ -36,7 +36,7 @@ function isStep8Complete(a) {
     a.finalChoice &&
     (a.coreReason || '').trim() &&
     (a.expectedProblem || '').trim() &&
-    (a.mitigationPlan || '').trim()
+    (a.mitigationPlan || '').trim() // STEP7 보완책을 그대로 가져온 값이라, STEP7이 끝났다면 항상 채워져 있다
   );
 }
 
