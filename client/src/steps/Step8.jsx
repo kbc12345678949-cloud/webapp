@@ -56,7 +56,9 @@ function Field({ label, value, onChange, placeholder, rows = 4, hints }) {
 }
 
 export default function Step8({ step3Answer, step5Answer, step7Answer, onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, initialAnswer, onDraftChange }) {
-  const [finalChoice, setFinalChoice] = useState(initialAnswer?.finalChoice ?? step5Answer?.choice ?? null);
+  // 최종 선택은 STEP5(재판단)에서 정한 정책을 그대로 잇는다. 여기서 다시 고르게 하면
+  // STEP7에서 이미 그 정책 기준으로 써둔 트레이드오프·보완책과 어긋날 수 있기 때문이다.
+  const finalChoice = step5Answer?.choice ?? null;
   const [coreReason, setCoreReason] = useState(initialAnswer?.coreReason ?? '');
   const [expectedProblem, setExpectedProblem] = useState(initialAnswer?.expectedProblem ?? '');
   // 보완 방안은 STEP7에서 이미 쓴 보완책과 같은 내용이라, 여기서 새로 쓰지 않고 그대로 가져다 쓴다.
@@ -113,7 +115,7 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
           최종 결정
         </h3>
         <p style={{ color: 'var(--color-text-body)', fontSize: 13, margin: '0 0 16px' }}>
-          지금까지의 여정을 돌아보고, 최종 정책을 결정해주세요.
+          지금까지의 여정을 돌아보고, 핵심 근거와 예상 문제점을 정리해주세요.
         </p>
 
         {/* 나의 선택 여정 요약 */}
@@ -143,26 +145,21 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
           </JourneyRow>
         </div>
 
-        {/* 최종 선택 */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          {policies.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setFinalChoice(p.id)}
-              style={{
-                flex: 1,
-                padding: '12px 6px',
-                borderRadius: 8,
-                border: `1.5px solid ${finalChoice === p.id ? 'var(--color-navy)' : 'var(--color-border)'}`,
-                background: finalChoice === p.id ? 'var(--color-navy)' : 'var(--color-card)',
-                color: finalChoice === p.id ? 'var(--color-navy-text-on)' : 'var(--color-text)',
-                fontSize: 12.5,
-                fontWeight: 500,
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+        {/* 최종 선택 — STEP5(재판단)에서 정한 정책이 그대로 이어진다(여기서 다시 고르지 않음) */}
+        <div
+          style={{
+            background: 'var(--color-navy)',
+            borderRadius: 'var(--radius-card)',
+            padding: '14px 16px',
+            marginBottom: 20,
+          }}
+        >
+          <p style={{ fontSize: 11, color: 'var(--color-border)', margin: '0 0 4px' }}>
+            최종 선택 (재판단 때 정한 정책이 그대로 이어집니다)
+          </p>
+          <p style={{ fontSize: 16, fontWeight: 500, color: '#FFFFFF', margin: 0 }}>
+            {p5 ? `${p5.label} · ${p5.title}` : '(재판단 결과 없음)'}
+          </p>
         </div>
 
         <Field
