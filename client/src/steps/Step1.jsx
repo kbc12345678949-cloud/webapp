@@ -183,6 +183,9 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
     !!material &&
     material.questions.length > 0 &&
     material.questions.every((q, i) => isCorrectAnswer(q, currentAnswers[i]));
+  // 테스트반은 정답을 맞히지 않아도 다음 자료로 넘어갈 수 있다(빠른 점검·시연용)
+  const isTestClass = student?.className === '테스트반';
+  const canProceed = allCorrect || isTestClass;
 
   // 확인 문제를 전부 맞히면, 같은 자료를 다시 볼 때(이전 자료로 되돌아왔을 때)는
   // 자동으로 튕겨나가지 않도록 "이미 자동 전환된 자료" 목록을 기억해둔다.
@@ -331,11 +334,11 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
           </button>
           <button
             onClick={goNext}
-            disabled={!allCorrect}
+            disabled={!canProceed}
             style={{
               flex: 2,
-              background: allCorrect ? 'var(--color-navy)' : 'var(--color-border)',
-              color: allCorrect ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
+              background: canProceed ? 'var(--color-navy)' : 'var(--color-border)',
+              color: canProceed ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
               border: 'none',
               borderRadius: 'var(--radius-button)',
               padding: 14,
@@ -346,7 +349,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
             {isLast ? '자료 확인 완료' : '다음 자료'}
           </button>
         </div>
-        {!allCorrect && (
+        {!canProceed && (
           <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8, textAlign: 'center' }}>
             확인 문제를 맞혀야 다음 자료로 넘어갈 수 있어요.
           </p>
