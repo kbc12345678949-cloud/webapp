@@ -5,8 +5,9 @@ import { policies } from '../data/policies';
 import { fetchMaterials } from '../api';
 import MaterialChart from '../components/MaterialChart';
 import BudgetTable from '../components/BudgetTable';
+import ReviewPanel from '../components/ReviewPanel';
 
-export default function Step4({ previousChoice, onComplete, onBack, student, token, projectId, stepId }) {
+export default function Step4({ previousChoice, step3Answer, onComplete, onBack, student, token, projectId, stepId }) {
   const [phase, setPhase] = useState('alert'); // 'alert' | 'materials'
   const [materials, setMaterials] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -122,6 +123,7 @@ export default function Step4({ previousChoice, onComplete, onBack, student, tok
         >
           ← 이전 단계로 (속보 다시 보기)
         </button>
+        <ReviewPanel currentStep={4} step3Answer={step3Answer} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           중앙정부 공모 사업 선정
         </h3>
@@ -147,6 +149,9 @@ export default function Step4({ previousChoice, onComplete, onBack, student, tok
                 marginBottom: 12,
               }}
             >
+              <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 6px' }}>
+                {m.title}
+              </p>
               <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-text-body)', margin: 0 }}>
                 {m.body}
               </p>
