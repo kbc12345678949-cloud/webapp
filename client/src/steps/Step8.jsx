@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { policies } from '../data/policies';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
+import HintQuestions from '../components/HintQuestions';
 import ReviewPanel from '../components/ReviewPanel';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
@@ -22,7 +23,7 @@ function JourneyRow({ label, children }) {
   );
 }
 
-function Field({ label, value, onChange, placeholder, rows = 4 }) {
+function Field({ label, value, onChange, placeholder, rows = 4, hints }) {
   return (
     <div
       style={{
@@ -34,6 +35,7 @@ function Field({ label, value, onChange, placeholder, rows = 4 }) {
       }}
     >
       <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 10px' }}>{label}</p>
+      <HintQuestions questions={hints} />
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -57,7 +59,8 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
   const [finalChoice, setFinalChoice] = useState(initialAnswer?.finalChoice ?? step5Answer?.choice ?? null);
   const [coreReason, setCoreReason] = useState(initialAnswer?.coreReason ?? '');
   const [expectedProblem, setExpectedProblem] = useState(initialAnswer?.expectedProblem ?? '');
-  const [mitigationPlan, setMitigationPlan] = useState(initialAnswer?.mitigationPlan ?? '');
+  // 보완 방안은 STEP7에서 이미 쓴 보완책과 같은 내용이라, 여기서 새로 쓰지 않고 그대로 가져다 쓴다.
+  const mitigationPlan = step7Answer?.mitigation ?? '';
 
   const p3 = policies.find((p) => p.id === step3Answer?.choice);
   const p5 = policies.find((p) => p.id === step5Answer?.choice);
@@ -68,25 +71,21 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
     step7Answer?.classification &&
     stakeholders?.filter((s) => step7Answer.classification[s.stakeholder_key] === 'benefit').map((s) => s.name);
 
-  const fieldsHaveAbuse =
-    hasRepeatedCharacterAbuse(coreReason) ||
-    hasRepeatedCharacterAbuse(expectedProblem) ||
-    hasRepeatedCharacterAbuse(mitigationPlan);
-  const canSubmit =
-    finalChoice && coreReason.trim() && expectedProblem.trim() && mitigationPlan.trim() && !fieldsHaveAbuse;
+  const fieldsHaveAbuse = hasRepeatedCharacterAbuse(coreReason) || hasRepeatedCharacterAbuse(expectedProblem);
+  const canSubmit = finalChoice && coreReason.trim() && expectedProblem.trim() && !fieldsHaveAbuse;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
     enrollmentId,
     stepId,
     { finalChoice, coreReason, expectedProblem, mitigationPlan },
-    { skip: !coreReason && !expectedProblem && !mitigationPlan }
+    { skip: !coreReason && !expectedProblem }
   );
 
   useEffect(() => {
     onDraftChange?.({ finalChoice, coreReason, expectedProblem, mitigationPlan });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalChoice, coreReason, expectedProblem, mitigationPlan]);
+  }, [finalChoice, coreReason, expectedProblem]);
 
   return (
     <div>
@@ -171,19 +170,36 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
           value={coreReason}
           onChange={setCoreReason}
           placeholder="최종 선택의 핵심 근거를 서술해주세요."
+          hints={['1차 판단 → 재판단 → 트레이드오프 분석을 거치는 동안, 지금 이 선택을 가장 확신하게 만든 건 무엇이었나요?']}
         />
         <Field
           label="예상 문제점"
           value={expectedProblem}
           onChange={setExpectedProblem}
           placeholder="이 정책을 시행했을 때 예상되는 문제점을 서술해주세요."
+          hints={['STEP7에서 "불이익 집단"으로 분류했던 사람들에게, 여전히 남아있는 불만은 무엇일까요?']}
         />
-        <Field
-          label="보완 방안"
-          value={mitigationPlan}
-          onChange={setMitigationPlan}
-          placeholder="예상 문제점을 줄이기 위한 보완 방안을 서술해주세요."
-        />
+
+        {/* 보완 방안은 STEP7에서 이미 작성한 보완책을 그대로 최종 결정에 포함시킨다(다시 쓰지 않음) */}
+        <div
+          style={{
+            background: 'var(--color-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)',
+            padding: 16,
+            marginBottom: 14,
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 4px' }}>
+            보완 방안
+          </p>
+          <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: '0 0 10px' }}>
+            STEP7에서 작성한 보완책을 그대로 최종 결정에 포함합니다.
+          </p>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--color-text-body)', margin: 0 }}>
+            {mitigationPlan || '(STEP7에서 작성한 내용이 없습니다)'}
+          </p>
+        </div>
         <p style={{ textAlign: 'right', fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6 }}>
           {saveStatus === 'saving' && '저장 중...'}
           {saveStatus === 'saved' && '저장됨'}
