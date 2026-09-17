@@ -1,6 +1,7 @@
 // src/steps/Step6.jsx
 import ProgressHeader from '../components/ProgressHeader';
 import StakeholderIcon from '../components/StakeholderIcon';
+import ReviewPanel from '../components/ReviewPanel';
 
 const Row = ({ label, text }) => (
   <div style={{ marginBottom: 8 }}>
@@ -19,7 +20,7 @@ const Row = ({ label, text }) => (
   </div>
 );
 
-export default function Step6({ onComplete, onBack, student, stakeholders, loadError }) {
+export default function Step6({ onComplete, onBack, student, stakeholders, loadError, step3Answer, step5Answer }) {
   return (
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={6} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
@@ -42,6 +43,7 @@ export default function Step6({ onComplete, onBack, student, stakeholders, loadE
             ← 이전 단계로 (재판단 다시 보기)
           </button>
         )}
+        <ReviewPanel currentStep={6} step3Answer={step3Answer} step5Answer={step5Answer} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           이해관계자 분석
         </h3>
@@ -67,7 +69,7 @@ export default function Step6({ onComplete, onBack, student, stakeholders, loadE
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-<StakeholderIcon stakeholderKey={s.stakeholder_key} size={20} />
+                <StakeholderIcon stakeholderKey={s.stakeholder_key} size={20} />
                 <span style={{ fontSize: 14.5, fontWeight: 500, color: 'var(--color-navy)' }}>{s.name}</span>
               </div>
               {s.linked_material_label && (
