@@ -60,8 +60,9 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
   // STEP7에서 이미 그 정책 기준으로 써둔 트레이드오프·보완책과 어긋날 수 있기 때문이다.
   const finalChoice = step5Answer?.choice ?? null;
   const [coreReason, setCoreReason] = useState(initialAnswer?.coreReason ?? '');
-  const [expectedProblem, setExpectedProblem] = useState(initialAnswer?.expectedProblem ?? '');
-  // 보완 방안은 STEP7에서 이미 쓴 보완책과 같은 내용이라, 여기서 새로 쓰지 않고 그대로 가져다 쓴다.
+  // 예상 문제점·보완 방안은 STEP7에서 이미 쓴 내용(불만·보완책)과 같은 내용이라,
+  // 여기서 새로 쓰지 않고 그대로 가져다 쓴다.
+  const expectedProblem = step7Answer?.harmConcern ?? '';
   const mitigationPlan = step7Answer?.mitigation ?? '';
 
   const p3 = policies.find((p) => p.id === step3Answer?.choice);
@@ -73,21 +74,21 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
     step7Answer?.classification &&
     stakeholders?.filter((s) => step7Answer.classification[s.stakeholder_key] === 'benefit').map((s) => s.name);
 
-  const fieldsHaveAbuse = hasRepeatedCharacterAbuse(coreReason) || hasRepeatedCharacterAbuse(expectedProblem);
-  const canSubmit = finalChoice && coreReason.trim() && expectedProblem.trim() && !fieldsHaveAbuse;
+  const fieldsHaveAbuse = hasRepeatedCharacterAbuse(coreReason);
+  const canSubmit = finalChoice && coreReason.trim() && !fieldsHaveAbuse;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
     enrollmentId,
     stepId,
     { finalChoice, coreReason, expectedProblem, mitigationPlan },
-    { skip: !coreReason && !expectedProblem }
+    { skip: !coreReason }
   );
 
   useEffect(() => {
     onDraftChange?.({ finalChoice, coreReason, expectedProblem, mitigationPlan });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalChoice, coreReason, expectedProblem]);
+  }, [finalChoice, coreReason]);
 
   return (
     <div>
@@ -115,7 +116,7 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
           최종 결정
         </h3>
         <p style={{ color: 'var(--color-text-body)', fontSize: 13, margin: '0 0 16px' }}>
-          지금까지의 여정을 돌아보고, 핵심 근거와 예상 문제점을 정리해주세요.
+          지금까지의 여정을 돌아보고, 핵심 근거를 정리해주세요.
         </p>
 
         {/* 나의 선택 여정 요약 */}
@@ -169,15 +170,28 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
           placeholder="최종 선택의 핵심 근거를 서술해주세요."
           hints={['1차 판단 → 재판단 → 트레이드오프 분석을 거치는 동안, 지금 이 선택을 가장 확신하게 만든 건 무엇이었나요?']}
         />
-        <Field
-          label="예상 문제점"
-          value={expectedProblem}
-          onChange={setExpectedProblem}
-          placeholder="이 정책을 시행했을 때 예상되는 문제점을 서술해주세요."
-          hints={['STEP7에서 "불이익 집단"으로 분류했던 사람들에게, 남아있는 불만은 무엇일까요?']}
-        />
 
-        {/* 보완 방안은 STEP7에서 이미 작성한 보완책을 그대로 최종 결정에 포함시킨다(다시 쓰지 않음) */}
+        {/* 예상 문제점·보완 방안은 STEP7에서 이미 작성한 내용(불만·보완책)을 그대로 최종 결정에 포함시킨다(다시 쓰지 않음) */}
+        <div
+          style={{
+            background: 'var(--color-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)',
+            padding: 16,
+            marginBottom: 14,
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 4px' }}>
+            예상 문제점
+          </p>
+          <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: '0 0 10px' }}>
+            STEP7에서 작성한 불이익 집단의 불만을 그대로 최종 결정에 포함합니다.
+          </p>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--color-text-body)', margin: 0 }}>
+            {expectedProblem || '(STEP7에서 작성한 내용이 없습니다)'}
+          </p>
+        </div>
+
         <div
           style={{
             background: 'var(--color-card)',
