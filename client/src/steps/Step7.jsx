@@ -3,9 +3,16 @@ import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import StakeholderIcon from '../components/StakeholderIcon';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
+import HintQuestions from '../components/HintQuestions';
 import ReviewPanel from '../components/ReviewPanel';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
+
+const HARM_CONCERN_HINTS = ['이들이 가장 크게 손해 보거나 아쉬워할 부분은 무엇인가요?'];
+const MITIGATION_HINTS = [
+  '왜 이 방법이 그 집단의 손해를 줄일 수 있다고 생각했나요?',
+  '이 보완책을 실제로 시행한다면 어떤 현실적인 어려움이 있을까요?',
+];
 
 const TAGS = [
   { key: 'benefit', label: '혜택 집단', color: '#4A90D9' },
@@ -14,27 +21,30 @@ const TAGS = [
 ];
 
 export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange, step3Answer, step5Answer }) {
-  const [phase, setPhase] = useState(initialAnswer?.mitigation ? 'writing' : 'classify');
+  const [phase, setPhase] = useState(initialAnswer?.mitigation || initialAnswer?.harmConcern ? 'writing' : 'classify');
   const [classification, setClassification] = useState(initialAnswer?.classification ?? {});
+  const [harmConcern, setHarmConcern] = useState(initialAnswer?.harmConcern ?? '');
   const [mitigation, setMitigation] = useState(initialAnswer?.mitigation ?? '');
 
   const allClassified = stakeholders && stakeholders.every((s) => classification[s.stakeholder_key]);
   const harmGroup = stakeholders ? stakeholders.filter((s) => classification[s.stakeholder_key] === 'harm') : [];
+  const harmConcernHasAbuse = hasRepeatedCharacterAbuse(harmConcern);
   const mitigationHasAbuse = hasRepeatedCharacterAbuse(mitigation);
-  const mitigationCanSubmit = mitigation.trim().length > 0 && !mitigationHasAbuse;
+  const writingCanSubmit =
+    harmConcern.trim().length > 0 && !harmConcernHasAbuse && mitigation.trim().length > 0 && !mitigationHasAbuse;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
     enrollmentId,
     stepId,
-    { classification, mitigation },
+    { classification, harmConcern, mitigation },
     { skip: Object.keys(classification).length === 0 }
   );
 
   useEffect(() => {
-    onDraftChange?.({ classification, mitigation });
+    onDraftChange?.({ classification, harmConcern, mitigation });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classification, mitigation]);
+  }, [classification, harmConcern, mitigation]);
 
   if (phase === 'classify') {
     return (
@@ -194,9 +204,43 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
             border: '1px solid var(--color-border)',
             borderRadius: 'var(--radius-card)',
             padding: 16,
+            marginBottom: 16,
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 10px' }}>
+            불이익 집단은 어떤 불만을 가질까요?
+          </p>
+          <HintQuestions questions={HARM_CONCERN_HINTS} />
+          <textarea
+            value={harmConcern}
+            onChange={(e) => setHarmConcern(e.target.value)}
+            rows={3}
+            placeholder="짧게 한두 문장으로 써주세요."
+            style={{
+              width: '100%',
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              padding: 10,
+              fontSize: 13.5,
+              fontFamily: 'var(--font-family)',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            background: 'var(--color-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)',
+            padding: 16,
             marginBottom: 20,
           }}
         >
+          <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 10px' }}>
+            그 불만을 줄이기 위한 보완책을 구체적으로 서술해주세요
+          </p>
+          <HintQuestions questions={MITIGATION_HINTS} />
           <textarea
             value={mitigation}
             onChange={(e) => setMitigation(e.target.value)}
@@ -224,12 +268,12 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         </div>
 
         <button
-          disabled={!mitigationCanSubmit}
-          onClick={async () => { await saveResponse(token, enrollmentId, stepId, { classification, mitigation }); onComplete({ classification, mitigation }); }}
+          disabled={!writingCanSubmit}
+          onClick={async () => { await saveResponse(token, enrollmentId, stepId, { classification, harmConcern, mitigation }); onComplete({ classification, harmConcern, mitigation }); }}
           style={{
             width: '100%',
-            background: mitigationCanSubmit ? 'var(--color-navy)' : 'var(--color-border)',
-            color: mitigationCanSubmit ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
+            background: writingCanSubmit ? 'var(--color-navy)' : 'var(--color-border)',
+            color: writingCanSubmit ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
             border: 'none',
             borderRadius: 'var(--radius-button)',
             padding: 14,
@@ -239,11 +283,11 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         >
           다음 단계로
         </button>
-        {mitigation.trim().length > 0 && mitigationHasAbuse && (
+        {(harmConcern.trim().length > 0 && harmConcernHasAbuse) || (mitigation.trim().length > 0 && mitigationHasAbuse) ? (
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
             같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   );
