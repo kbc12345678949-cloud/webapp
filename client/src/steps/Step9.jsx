@@ -46,7 +46,7 @@ function TextField({ label, value, onChange, min, placeholder, hints }) {
   );
 }
 
-export default function Step9({ onSubmit, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange, step3Answer, step5Answer, step7Answer, step8Answer, stakeholders }) {
+export default function Step9({ onSubmit, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange, step3Answer, step5Answer, step7Answer, step8Answer, stakeholders, budgetGiven }) {
   const [branch, setBranch] = useState(initialAnswer?.branch ?? null);
   const [hadPoint, setHadPoint] = useState(initialAnswer?.hadPoint ?? '');
   const [hadChanged, setHadChanged] = useState(initialAnswer?.hadChanged ?? '');
@@ -142,6 +142,7 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
           step7Answer={step7Answer}
           step8Answer={step8Answer}
           stakeholders={stakeholders}
+          budgetGiven={budgetGiven}
         />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           성찰
