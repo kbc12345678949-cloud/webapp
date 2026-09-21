@@ -8,7 +8,10 @@ import ReviewPanel from '../components/ReviewPanel';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
-const HARM_CONCERN_HINTS = ['이들이 가장 크게 손해 보거나 아쉬워할 부분은 무엇인가요?'];
+const HARM_CONCERN_HINTS = [
+  '이들이 가장 크게 손해 보거나 아쉬워할 부분은 무엇인가요?',
+  'STEP4에서 예산 항목을 포기하기로 했다면, 그로 인해 손해를 보는 사람을 불이익 집단으로 제대로 분류했는지 다시 확인해보세요.',
+];
 const MITIGATION_HINTS = [
   '왜 이 방법이 그 집단의 손해를 줄일 수 있다고 생각했나요?',
   '이 보완책을 실제로 시행한다면 어떤 현실적인 어려움이 있을까요?',
@@ -20,7 +23,7 @@ const TAGS = [
   { key: 'neutral', label: '상관없어 보임', color: '#000000' },
 ];
 
-export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange, step3Answer, step5Answer }) {
+export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange, step3Answer, step5Answer, budgetGiven }) {
   const [phase, setPhase] = useState(initialAnswer?.mitigation || initialAnswer?.harmConcern ? 'writing' : 'classify');
   const [classification, setClassification] = useState(initialAnswer?.classification ?? {});
   const [harmConcern, setHarmConcern] = useState(initialAnswer?.harmConcern ?? '');
@@ -68,7 +71,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
               ← 이전 단계로 (이해관계자 다시 보기)
             </button>
           )}
-          <ReviewPanel currentStep={7} step3Answer={step3Answer} step5Answer={step5Answer} stakeholders={stakeholders} />
+          <ReviewPanel currentStep={7} step3Answer={step3Answer} step5Answer={step5Answer} stakeholders={stakeholders} budgetGiven={budgetGiven} />
           <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
             트레이드오프 분석
           </h3>
@@ -170,7 +173,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         >
           ← 이전 단계로 (분류 다시 보기)
         </button>
-        <ReviewPanel currentStep={7} step3Answer={step3Answer} step5Answer={step5Answer} stakeholders={stakeholders} />
+        <ReviewPanel currentStep={7} step3Answer={step3Answer} step5Answer={step5Answer} stakeholders={stakeholders} budgetGiven={budgetGiven} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           보완책 제안
         </h3>
