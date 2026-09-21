@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useState, useEffect } from 'react';
 import StudentLogin from './StudentLogin';
+import MaterialsPreview from './MaterialsPreview';
 import Step0 from './steps/Step0';
 import Step1 from './steps/Step1';
 import Step3 from './steps/Step3';
@@ -140,7 +141,8 @@ export default function App() {
 
   return (
     <div>
-      {screen === 'login' && <StudentLogin onLogin={afterLogin} />}
+      {screen === 'login' && <StudentLogin onLogin={afterLogin} onPreview={() => setScreen('preview')} />}
+      {screen === 'preview' && <MaterialsPreview onBack={() => setScreen('login')} />}
       {screen === 'step0' && <Step0 student={student} onStart={() => setScreen('step1')} />}
       {screen === 'step1' && (
         <Step1
