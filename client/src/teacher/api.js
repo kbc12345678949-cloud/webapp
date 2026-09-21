@@ -43,8 +43,8 @@ export const teacherApi = {
     request(`/api/teacher/schedules/${projectId}`, { method: 'PUT', token, body: payload }),
   toggleSchedule: (token, scheduleId, open) =>
     request(`/api/teacher/schedules/${scheduleId}/toggle`, { method: 'POST', token, body: { open } }),
-  getDistribution: (token, projectId, stepKey) =>
-    request(`/api/teacher/distribution/${projectId}/${stepKey}`, { token }),
+  getDistribution: (token, projectId, stepKey, classId) =>
+    request(`/api/teacher/distribution/${projectId}/${stepKey}${classId ? `?classId=${classId}` : ''}`, { token }),
   getProgress: (token, projectId, classId) => request(`/api/teacher/progress/${projectId}/${classId}`, { token }),
   getResponses: (token, enrollmentId) => request(`/api/teacher/responses/${enrollmentId}`, { token }),
   getRubric: (token, projectId) => request(`/api/teacher/rubric/${projectId}`, { token }),
