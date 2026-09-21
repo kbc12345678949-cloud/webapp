@@ -69,7 +69,7 @@ export default function App() {
   const [session, setSession] = useState(null); // { project, steps, enrollment }
   const [loadError, setLoadError] = useState('');
   const [step1Progress, setStep1Progress] = useState({ answers: {}, index: 0 });
-  const [budgetGiven, setBudgetGiven] = useState({}); // STEP4 예산표에서 "포기하기로 한" 항목 (STEP5에서도 참고)
+  const [budgetGiven, setBudgetGiven] = useState({}); // STEP4 예산표에서 "포기하기로 한" 항목 (STEP5~9에서도 참고)
   const [step3Answer, setStep3Answer] = useState(null);
   const [step5Answer, setStep5Answer] = useState(null);
   const [step7Answer, setStep7Answer] = useState(null);
@@ -80,7 +80,7 @@ export default function App() {
 
   const stepId = (key) => session?.steps.find((s) => s.step_key === key)?.id;
 
- const afterLogin = async (data) => {
+  const afterLogin = async (data) => {
     setStudent(data);
     setScreen('loading');
     try {
@@ -235,6 +235,7 @@ export default function App() {
           loadError={stakeholderError}
           step3Answer={step3Answer}
           step5Answer={step5Answer}
+          budgetGiven={budgetGiven}
           onBack={() => setScreen('step5')}
           onComplete={() => setScreen('step7')}
         />
@@ -251,6 +252,7 @@ export default function App() {
           onDraftChange={setStep7Answer}
           step3Answer={step3Answer}
           step5Answer={step5Answer}
+          budgetGiven={budgetGiven}
           onBack={() => setScreen('step6')}
           onComplete={(data) => {
             setStep7Answer(data);
@@ -268,6 +270,7 @@ export default function App() {
           step3Answer={step3Answer}
           step5Answer={step5Answer}
           step7Answer={step7Answer}
+          budgetGiven={budgetGiven}
           initialAnswer={step8Answer}
           onDraftChange={setStep8Answer}
           onBack={() => setScreen('step7')}
@@ -290,6 +293,7 @@ export default function App() {
           step7Answer={step7Answer}
           step8Answer={step8Answer}
           stakeholders={stakeholders}
+          budgetGiven={budgetGiven}
           onBack={() => setScreen('step8')}
           onSubmit={() => setScreen('done')}
         />
