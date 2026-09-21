@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { materials as step1Materials } from '../data/step1Materials';
 import { step4Materials } from '../data/step4Materials';
 import { policies } from '../data/policies';
+import { BUDGET_ITEMS } from './BudgetTable';
 
 const DECISION_LABEL = { keep: '유지', change: '변경' };
 const TAG_LABEL = { benefit: '혜택', harm: '불이익', neutral: '무관' };
@@ -49,12 +50,14 @@ function Card({ title, children }) {
   );
 }
 
-export default function ReviewPanel({ currentStep, step3Answer, step5Answer, step7Answer, step8Answer, stakeholders }) {
+export default function ReviewPanel({ currentStep, step3Answer, step5Answer, step7Answer, step8Answer, stakeholders, budgetGiven }) {
   const [open, setOpen] = useState(false);
 
   const p3 = policies.find((p) => p.id === step3Answer?.choice);
   const p5 = policies.find((p) => p.id === step5Answer?.choice);
   const p8 = policies.find((p) => p.id === step8Answer?.finalChoice);
+
+  const givenItems = budgetGiven ? BUDGET_ITEMS.filter((it) => budgetGiven[it.name]) : [];
 
   const classificationText = (cls) =>
     cls && stakeholders
@@ -133,6 +136,12 @@ export default function ReviewPanel({ currentStep, step3Answer, step5Answer, ste
                   <strong>{p3 ? `${p3.label} · ${p3.title}` : '-'}</strong>
                   <p style={{ margin: '6px 0 0' }}>{step3Answer.reason}</p>
                 </Card>
+              </Section>
+            )}
+
+            {currentStep >= 5 && givenItems.length > 0 && (
+              <Section title="내가 포기하기로 한 예산 항목 (STEP4)">
+                <Card>{givenItems.map((it) => `${it.name}(${it.amount}억)`).join(', ')}</Card>
               </Section>
             )}
 
