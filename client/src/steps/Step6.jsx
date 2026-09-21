@@ -20,7 +20,7 @@ const Row = ({ label, text }) => (
   </div>
 );
 
-export default function Step6({ onComplete, onBack, student, stakeholders, loadError, step3Answer, step5Answer }) {
+export default function Step6({ onComplete, onBack, student, stakeholders, loadError, step3Answer, step5Answer, budgetGiven }) {
   return (
     <div>
       <ProgressHeader projectLabel="TF팀 브리핑" currentStep={6} totalSteps={9} studentNo={student?.studentNo} studentName={student?.name} />
@@ -43,7 +43,7 @@ export default function Step6({ onComplete, onBack, student, stakeholders, loadE
             ← 이전 단계로 (재판단 다시 보기)
           </button>
         )}
-        <ReviewPanel currentStep={6} step3Answer={step3Answer} step5Answer={step5Answer} />
+        <ReviewPanel currentStep={6} step3Answer={step3Answer} step5Answer={step5Answer} budgetGiven={budgetGiven} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           이해관계자 분석
         </h3>
