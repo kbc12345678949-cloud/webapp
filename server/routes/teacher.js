@@ -8,6 +8,19 @@ const db = require('../db');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
+// 제출 시각을 한국 시간(KST) 기준 "YYYY-MM-DD HH:mm"으로 변환한다.
+// 서버가 어느 시간대에서 돌아가든 항상 한국 시간으로 정확히 나오게 하기 위함.
+function formatKST(d) {
+  if (!d) return '';
+  const parts = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date(d));
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}`;
+}
+
 function requireTeacher(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: '로그인이 필요합니다.' });
@@ -223,7 +236,7 @@ router.get('/export/:projectId/:classId', requireTeacher, async (req, res) => {
 
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
-  const header = ['학번', '이름', '제출 여부', ...rubric.rows.map((r) => r.title), '총점'];
+    const header = ['학번', '이름', '제출 여부', ...rubric.rows.map((r) => r.title), '총점', '제출 시각'];
   const lines = [header.map(esc).join(',')];
 
   for (const s of students.rows) {
@@ -235,6 +248,7 @@ router.get('/export/:projectId/:classId', requireTeacher, async (req, res) => {
       s.submitted_at ? '제출 완료' : '미제출',
       ...itemScores,
       s.enrollment_id ? total : '',
+      formatKST(s.submitted_at),
     ];
     lines.push(row.map(esc).join(','));
   }
