@@ -4,12 +4,13 @@ import ProgressHeader from '../components/ProgressHeader';
 import { policies } from '../data/policies';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import ReviewPanel from '../components/ReviewPanel';
+import { BUDGET_ITEMS } from '../components/BudgetTable';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { saveResponse } from '../api';
 
 const MIN_CHARS_STEP5 = 75;
 
-export default function Step5({ previousChoice, step3Answer, onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
+export default function Step5({ previousChoice, step3Answer, budgetGiven, onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
   const [decision, setDecision] = useState(initialAnswer?.decision ?? null);
   const [newChoice, setNewChoice] = useState(
     initialAnswer?.decision === 'change' ? initialAnswer.choice : null
@@ -84,6 +85,28 @@ export default function Step5({ previousChoice, step3Answer, onComplete, onBack,
             {prevPolicy ? `${prevPolicy.label} · ${prevPolicy.title}` : '(선택 없음)'}
           </p>
         </div>
+
+        {/* STEP4에서 포기하기로 골랐던 예산 항목 리마인드 */}
+        {budgetGiven && Object.values(budgetGiven).some(Boolean) && (
+          <div
+            style={{
+              background: 'var(--color-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-card)',
+              padding: '14px 16px',
+              marginBottom: 16,
+            }}
+          >
+            <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: '0 0 6px' }}>
+              STEP4에서 포기하기로 했던 예산 항목
+            </p>
+            <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--color-navy)', margin: 0 }}>
+              {BUDGET_ITEMS.filter((it) => budgetGiven[it.name])
+                .map((it) => `${it.name}(${it.amount}억)`)
+                .join(', ')}
+            </p>
+          </div>
+        )}
 
         {/* 유지 / 변경 */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
