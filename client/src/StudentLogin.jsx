@@ -5,7 +5,7 @@ import { studentLogin } from './api';
 
 const CLASS_OPTIONS = ['2학년 1반', '2학년 2반', '2학년 3반', '테스트반'];
 
-export default function StudentLogin({ onLogin }) {
+export default function StudentLogin({ onLogin, onPreview }) {
   const [className, setClassName] = useState(CLASS_OPTIONS[0]);
   const [studentNo, setStudentNo] = useState('');
   const [error, setError] = useState('');
@@ -164,6 +164,25 @@ export default function StudentLogin({ onLogin }) {
           }}
         >
           {loading ? '확인 중...' : '로그인'}
+        </button>
+
+        <button
+          type="button"
+          onClick={onPreview}
+          style={{
+            display: 'block',
+            width: '100%',
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-teal)',
+            fontSize: 13,
+            padding: 0,
+            marginTop: 16,
+            textAlign: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          수행평가 전에 자료만 미리 보기 →
         </button>
       </form>
     </div>
