@@ -63,6 +63,7 @@ export default function App() {
   const [session, setSession] = useState(null); // { project, steps, enrollment }
   const [loadError, setLoadError] = useState('');
   const [step1Progress, setStep1Progress] = useState({ answers: {}, index: 0 });
+  const [budgetGiven, setBudgetGiven] = useState({}); // STEP4 예산표에서 "포기하기로 한" 항목 (STEP5에서도 참고)
   const [step3Answer, setStep3Answer] = useState(null);
   const [step5Answer, setStep5Answer] = useState(null);
   const [step7Answer, setStep7Answer] = useState(null);
@@ -98,6 +99,10 @@ export default function App() {
       setLoadError(err.message);
       setScreen('loadError');
     }
+  };
+
+  const toggleBudgetItem = (name) => {
+    setBudgetGiven((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
   // 이해관계자는 STEP6·7 둘 다 같은 목록을 쓰므로, STEP6에 진입할 때 한 번만 가져와 공유한다.
@@ -179,6 +184,8 @@ export default function App() {
           stepId={stepId('step4')}
           previousChoice={step3Answer?.choice}
           step3Answer={step3Answer}
+          budgetGiven={budgetGiven}
+          onBudgetChange={toggleBudgetItem}
           onBack={() => setScreen('step3')}
           onComplete={() => setScreen('step5')}
         />
@@ -191,6 +198,7 @@ export default function App() {
           stepId={stepId('step5')}
           previousChoice={step3Answer?.choice}
           step3Answer={step3Answer}
+          budgetGiven={budgetGiven}
           initialAnswer={step5Answer}
           onDraftChange={setStep5Answer}
           onBack={() => setScreen('step4')}
