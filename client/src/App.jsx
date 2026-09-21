@@ -16,6 +16,12 @@ import { enterProject, fetchStakeholders } from './api';
 
 const PROJECT_CODE = 'tourism';
 
+// 반 이름 + 학번으로 저장 키를 만든다(학번만 쓰면 다른 반 같은 학번과 섞일 수 있음).
+// 이 브라우저·이 기기에서만 기억되는 값이며, 서버 저장 응답과는 완전히 별개다.
+function budgetStorageKey(student) {
+  return `budgetGiven:${student?.className}:${student?.studentNo}`;
+}
+
 // 각 스텝의 "완료 기준"을 실제로 검사한다. 응답이 존재한다고 해서 완료된 게 아니라,
 // 최소 글자 수 등 제출 버튼이 활성화되는 조건을 그대로 충족해야 완료로 본다.
 function isStep3Complete(a) {
@@ -74,9 +80,15 @@ export default function App() {
 
   const stepId = (key) => session?.steps.find((s) => s.step_key === key)?.id;
 
-  const afterLogin = async (data) => {
+ const afterLogin = async (data) => {
     setStudent(data);
     setScreen('loading');
+    try {
+      const saved = localStorage.getItem(budgetStorageKey(data));
+      setBudgetGiven(saved ? JSON.parse(saved) : {});
+    } catch {
+      setBudgetGiven({});
+    }
     try {
       const sessionData = await enterProject(data.token, PROJECT_CODE);
       setSession(sessionData);
