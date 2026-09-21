@@ -55,7 +55,7 @@ function Field({ label, value, onChange, placeholder, rows = 4, hints }) {
   );
 }
 
-export default function Step8({ step3Answer, step5Answer, step7Answer, onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, initialAnswer, onDraftChange }) {
+export default function Step8({ step3Answer, step5Answer, step7Answer, onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, initialAnswer, onDraftChange, budgetGiven }) {
   // 최종 선택은 STEP5(재판단)에서 정한 정책을 그대로 잇는다. 여기서 다시 고르게 하면
   // STEP7에서 이미 그 정책 기준으로 써둔 트레이드오프·보완책과 어긋날 수 있기 때문이다.
   const finalChoice = step5Answer?.choice ?? null;
@@ -111,7 +111,7 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
             ← 이전 단계로 (트레이드오프 다시 보기)
           </button>
         )}
-        <ReviewPanel currentStep={8} step3Answer={step3Answer} step5Answer={step5Answer} step7Answer={step7Answer} stakeholders={stakeholders} />
+        <ReviewPanel currentStep={8} step3Answer={step3Answer} step5Answer={step5Answer} step7Answer={step7Answer} stakeholders={stakeholders} budgetGiven={budgetGiven} />
         <h3 style={{ color: 'var(--color-navy)', fontSize: 17, fontWeight: 500, margin: '0 0 4px' }}>
           최종 결정
         </h3>
