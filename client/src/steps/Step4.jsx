@@ -7,7 +7,7 @@ import MaterialChart from '../components/MaterialChart';
 import BudgetTable from '../components/BudgetTable';
 import ReviewPanel from '../components/ReviewPanel';
 
-export default function Step4({ previousChoice, step3Answer, onComplete, onBack, student, token, projectId, stepId }) {
+export default function Step4({ previousChoice, step3Answer, onComplete, onBack, student, token, projectId, stepId, budgetGiven, onBudgetChange }) {
   const [phase, setPhase] = useState('alert'); // 'alert' | 'materials'
   const [materials, setMaterials] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -156,7 +156,7 @@ export default function Step4({ previousChoice, step3Answer, onComplete, onBack,
                 {m.body}
               </p>
               <MaterialChart materialKey={m.material_key} />
-              {m.material_key === 'n2' && <BudgetTable />}
+              {m.material_key === 'n2' && <BudgetTable given={budgetGiven} onToggle={onBudgetChange} />}
             </div>
           ))}
 
