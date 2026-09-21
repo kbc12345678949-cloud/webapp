@@ -1,5 +1,5 @@
 // src/teacher/LiveDistribution.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { teacherApi } from './api';
 import { policies } from '../data/policies';
 
@@ -23,20 +23,35 @@ function DistBar({ label, count, total }) {
 }
 
 export default function LiveDistribution({ token, projectId }) {
+  const [classes, setClasses] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState(''); // '' = 전체 반 합산
   const [step3Data, setStep3Data] = useState(null);
   const [step8Data, setStep8Data] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [revealed, setRevealed] = useState(false); // 한 번이라도 "지금 분포 공개하기"를 눌렀는지
+
+  useEffect(() => {
+    teacherApi.getClasses(token).then(setClasses).catch(() => {});
+  }, [token]);
 
   const fetchBoth = async () => {
     setLoading(true);
+    const classId = selectedClassId || undefined;
     const [d3, d8] = await Promise.all([
-      teacherApi.getDistribution(token, projectId, 'step3'),
-      teacherApi.getDistribution(token, projectId, 'step8').catch(() => null),
+      teacherApi.getDistribution(token, projectId, 'step3', classId),
+      teacherApi.getDistribution(token, projectId, 'step8', classId).catch(() => null),
     ]);
     setStep3Data(d3);
     setStep8Data(d8);
     setLoading(false);
+    setRevealed(true);
   };
+
+  // 한 번 공개된 뒤에는, 반 선택을 바꾸면 자동으로 그 반 기준으로 다시 불러온다.
+  useEffect(() => {
+    if (revealed) fetchBoth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClassId]);
 
   const renderPanel = (title, data) => {
     if (!data) return null;
@@ -71,22 +86,42 @@ export default function LiveDistribution({ token, projectId }) {
         실시간 집계 — 1차 판단 vs 최종 결정
       </h2>
 
-      <button
-        onClick={fetchBoth}
-        disabled={loading}
-        style={{
-          background: 'var(--color-navy)',
-          color: 'var(--color-navy-text-on)',
-          border: 'none',
-          borderRadius: 8,
-          padding: '10px 18px',
-          fontSize: 14,
-          fontWeight: 500,
-          marginBottom: 18,
-        }}
-      >
-        {loading ? '불러오는 중...' : '지금 분포 공개하기'}
-      </button>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
+        <select
+          value={selectedClassId}
+          onChange={(e) => setSelectedClassId(e.target.value)}
+          style={{
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: '1px solid var(--color-border)',
+            fontSize: 14,
+            color: 'var(--color-text)',
+          }}
+        >
+          <option value="">전체 반 합산</option>
+          {classes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+
+        <button
+          onClick={fetchBoth}
+          disabled={loading}
+          style={{
+            background: 'var(--color-navy)',
+            color: 'var(--color-navy-text-on)',
+            border: 'none',
+            borderRadius: 8,
+            padding: '10px 18px',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          {loading ? '불러오는 중...' : '지금 분포 공개하기'}
+        </button>
+      </div>
 
       {(step3Data || step8Data) && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
