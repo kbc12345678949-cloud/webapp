@@ -114,7 +114,15 @@ export default function App() {
   };
 
   const toggleBudgetItem = (name) => {
-    setBudgetGiven((prev) => ({ ...prev, [name]: !prev[name] }));
+    setBudgetGiven((prev) => {
+      const next = { ...prev, [name]: !prev[name] };
+      try {
+        localStorage.setItem(budgetStorageKey(student), JSON.stringify(next));
+      } catch {
+        // 저장 실패해도(예: 시크릿 모드) 화면 동작에는 지장 없게 조용히 넘어간다
+      }
+      return next;
+    });
   };
 
   // 이해관계자는 STEP6·7 둘 다 같은 목록을 쓰므로, STEP6에 진입할 때 한 번만 가져와 공유한다.
