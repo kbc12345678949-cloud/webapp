@@ -10,10 +10,13 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
   const [selected, setSelected] = useState(initialAnswer?.choice ?? null);
   const [reason, setReason] = useState(initialAnswer?.reason ?? '');
 
+  // 테스트반은 글자 수·반복문자 조건 없이, 정책만 선택하면 바로 넘어갈 수 있다
+  // (공개수업 참관 선생님들이 빠르게 훑어보실 수 있도록)
+  const isTestClass = student?.className === '테스트반';
   const charCount = reason.trim().length;
   const meetsMin = charCount >= MIN_CHARS_STEP3;
   const hasAbuse = hasRepeatedCharacterAbuse(reason);
-  const canSubmit = selected && meetsMin && !hasAbuse;
+  const canSubmit = selected && (isTestClass || (meetsMin && !hasAbuse));
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
@@ -178,6 +181,8 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
             {!selected
               ? '정책안을 선택해주세요.'
+              : isTestClass
+              ? ''
               : hasAbuse
               ? '같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.'
               : `${MIN_CHARS_STEP3 - charCount}자 더 작성해주세요.`}
