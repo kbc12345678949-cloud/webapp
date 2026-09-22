@@ -29,12 +29,16 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
   const [harmConcern, setHarmConcern] = useState(initialAnswer?.harmConcern ?? '');
   const [mitigation, setMitigation] = useState(initialAnswer?.mitigation ?? '');
 
-  const allClassified = stakeholders && stakeholders.every((s) => classification[s.stakeholder_key]);
+  // 테스트반은 분류·글쓰기 조건 없이 전부 건너뛸 수 있다 (공개수업 참관용)
+  const isTestClass = student?.className === '테스트반';
+
+  const allClassified = isTestClass || (stakeholders && stakeholders.every((s) => classification[s.stakeholder_key]));
   const harmGroup = stakeholders ? stakeholders.filter((s) => classification[s.stakeholder_key] === 'harm') : [];
   const harmConcernHasAbuse = hasRepeatedCharacterAbuse(harmConcern);
   const mitigationHasAbuse = hasRepeatedCharacterAbuse(mitigation);
-  const writingCanSubmit =
-    harmConcern.trim().length > 0 && !harmConcernHasAbuse && mitigation.trim().length > 0 && !mitigationHasAbuse;
+  const writingCanSubmit = isTestClass
+    ? true
+    : harmConcern.trim().length > 0 && !harmConcernHasAbuse && mitigation.trim().length > 0 && !mitigationHasAbuse;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
     token,
@@ -286,7 +290,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         >
           다음 단계로
         </button>
-        {(harmConcern.trim().length > 0 && harmConcernHasAbuse) || (mitigation.trim().length > 0 && mitigationHasAbuse) ? (
+        {!isTestClass && ((harmConcern.trim().length > 0 && harmConcernHasAbuse) || (mitigation.trim().length > 0 && mitigationHasAbuse)) ? (
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
             같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
           </p>
