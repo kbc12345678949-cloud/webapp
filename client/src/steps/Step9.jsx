@@ -59,23 +59,28 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
   const [submitError, setSubmitError] = useState('');
   const [index, setIndex] = useState(0); // STEP1처럼, 질문을 하나씩 넘겨보는 방식
 
-  const branchOk =
-    branch === 'had'
-      ? hadPoint.trim().length >= MIN_BRANCH_HAD &&
-        !hasRepeatedCharacterAbuse(hadPoint) &&
-        hadChanged.trim().length >= MIN_BRANCH_HAD &&
-        !hasRepeatedCharacterAbuse(hadChanged)
-      : branch === 'none'
-      ? noneReason.trim().length >= MIN_BRANCH_NONE && !hasRepeatedCharacterAbuse(noneReason)
-      : false;
+  // 테스트반은 글자 수·반복문자 조건 없이, "있었다/없었다" 분기 선택만 하면 바로 제출까지 갈 수 있다
+  const isTestClass = student?.className === '테스트반';
 
-  const selfOk =
-    self1.trim().length >= MIN_SELF &&
-    !hasRepeatedCharacterAbuse(self1) &&
-    self2.trim().length >= MIN_SELF &&
-    !hasRepeatedCharacterAbuse(self2) &&
-    self3.trim().length >= MIN_SELF &&
-    !hasRepeatedCharacterAbuse(self3);
+  const branchOk = isTestClass
+    ? branch === 'had' || branch === 'none'
+    : branch === 'had'
+    ? hadPoint.trim().length >= MIN_BRANCH_HAD &&
+      !hasRepeatedCharacterAbuse(hadPoint) &&
+      hadChanged.trim().length >= MIN_BRANCH_HAD &&
+      !hasRepeatedCharacterAbuse(hadChanged)
+    : branch === 'none'
+    ? noneReason.trim().length >= MIN_BRANCH_NONE && !hasRepeatedCharacterAbuse(noneReason)
+    : false;
+
+  const selfOk = isTestClass
+    ? true
+    : self1.trim().length >= MIN_SELF &&
+      !hasRepeatedCharacterAbuse(self1) &&
+      self2.trim().length >= MIN_SELF &&
+      !hasRepeatedCharacterAbuse(self2) &&
+      self3.trim().length >= MIN_SELF &&
+      !hasRepeatedCharacterAbuse(self3);
 
   const canSubmit = branchOk && selfOk;
 
