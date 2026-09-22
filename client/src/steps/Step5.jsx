@@ -17,12 +17,14 @@ export default function Step5({ previousChoice, step3Answer, budgetGiven, onComp
   );
   const [reason, setReason] = useState(initialAnswer?.reason ?? '');
 
+  // 테스트반은 글자 수·반복문자 조건 없이, 유지/변경 여부만 고르면 바로 넘어갈 수 있다
+  const isTestClass = student?.className === '테스트반';
   const prevPolicy = policies.find((p) => p.id === previousChoice);
   const charCount = reason.trim().length;
   const meetsMin = charCount >= MIN_CHARS_STEP5;
   const hasAbuse = hasRepeatedCharacterAbuse(reason);
   const decisionReady = decision === 'keep' || (decision === 'change' && newChoice);
-  const canSubmit = decisionReady && meetsMin && !hasAbuse;
+  const canSubmit = decisionReady && (isTestClass || (meetsMin && !hasAbuse));
   const finalChoice = decision === 'change' ? newChoice : previousChoice;
 
   const { status: saveStatus, error: saveError } = useAutoSave(
@@ -218,6 +220,8 @@ export default function Step5({ previousChoice, step3Answer, budgetGiven, onComp
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
             {!decisionReady
               ? '유지 또는 변경 여부를 선택해주세요.'
+              : isTestClass
+              ? ''
               : hasAbuse
               ? '같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.'
               : `${MIN_CHARS_STEP5 - charCount}자 더 작성해주세요.`}
