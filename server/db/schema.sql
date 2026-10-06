@@ -11,6 +11,7 @@ CREATE TABLE projects (
   title         VARCHAR(200) NOT NULL,          -- '관광 정책 결정 시뮬레이션'
   base_score    INTEGER NOT NULL DEFAULT 30,    -- 기본점수 합계 (관광정책=30, 조례=30)
   max_score     INTEGER NOT NULL DEFAULT 100,
+  review_only   BOOLEAN NOT NULL DEFAULT false, -- 열람 모드: true면 학생은 기록 보기만 가능(저장·제출 서버에서 차단)
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

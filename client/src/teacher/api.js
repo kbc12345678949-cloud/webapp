@@ -45,6 +45,9 @@ export const teacherApi = {
     request(`/api/teacher/schedules/${scheduleId}/toggle`, { method: 'POST', token, body: { open } }),
   getDistribution: (token, projectId, stepKey, classId) =>
     request(`/api/teacher/distribution/${projectId}/${stepKey}${classId ? `?classId=${classId}` : ''}`, { token }),
+  getReviewMode: (token, projectId) => request(`/api/teacher/projects/${projectId}/review-mode`, { token }),
+  setReviewMode: (token, projectId, reviewOnly) =>
+    request(`/api/teacher/projects/${projectId}/review-mode`, { method: 'PUT', token, body: { reviewOnly } }),
   getProgress: (token, projectId, classId) => request(`/api/teacher/progress/${projectId}/${classId}`, { token }),
   getResponses: (token, enrollmentId) => request(`/api/teacher/responses/${enrollmentId}`, { token }),
   getRubric: (token, projectId) => request(`/api/teacher/rubric/${projectId}`, { token }),

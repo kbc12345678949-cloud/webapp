@@ -153,6 +153,34 @@ async function main() {
   const forbidden = await request.get('/api/teacher/progress/1/1').set('Authorization', `Bearer ${studentToken}`);
   check('학생이 교사 API 접근 시 차단(401)', forbidden.status === 401);
 
+  // 4-13. 열람 모드(수행평가 종료): 켜면 응시 시간과 무관하게 기록 열람만 가능, 저장·제출은 서버에서 차단
+  const rmOn = await request
+    .put('/api/teacher/projects/1/review-mode')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ reviewOnly: true });
+  check('열람 모드 켜기 200', rmOn.status === 200 && rmOn.body.reviewOnly === true);
+  await pool.query(`UPDATE class_schedules SET starts_at = now() - interval '2 day', ends_at = now() - interval '1 day'`);
+  const rmEnter = await request.get('/api/student/projects/tourism').set('Authorization', `Bearer ${studentToken}`);
+  check('열람 모드: 응시 시간이 지나도 진입 200 + reviewOnly', rmEnter.status === 200 && rmEnter.body.reviewOnly === true);
+  check('열람 모드: 저장된 답안이 그대로 내려옴', rmEnter.body.responses.length >= 1);
+  const rmSave = await request
+    .put(`/api/student/enrollments/${enrollmentId}/responses/${rmEnter.body.steps[1].id}`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ answer: { choice: 'C', reason: '수정 시도' } });
+  check('열람 모드: 답안 저장 차단(423)', rmSave.status === 423);
+  const rmStudentToggle = await request
+    .put('/api/teacher/projects/1/review-mode')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ reviewOnly: false });
+  check('열람 모드: 학생은 스위치를 끌 수 없음(401)', rmStudentToggle.status === 401);
+  const rmOff = await request
+    .put('/api/teacher/projects/1/review-mode')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ reviewOnly: false });
+  check('열람 모드 끄기 200', rmOff.status === 200 && rmOff.body.reviewOnly === false);
+  const rmClosed = await request.get('/api/student/projects/tourism').set('Authorization', `Bearer ${studentToken}`);
+  check('열람 모드 끄면 다시 응시 시간 규칙 적용(403)', rmClosed.status === 403);
+
   console.log(`\n결과: ${pass}개 통과, ${fail}개 실패`);
   Module._load = originalLoad;
   process.exit(fail > 0 ? 1 : 0);

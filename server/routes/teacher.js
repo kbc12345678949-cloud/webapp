@@ -108,6 +108,24 @@ router.post('/schedules/:scheduleId/toggle', requireTeacher, async (req, res) =>
   res.json(rows[0]);
 });
 
+// ---------- 열람 모드(수행평가 종료) 조회·변경 ----------
+// 켜면: 학생은 응시 시간과 상관없이 로그인해 자기 기록을 보기만 할 수 있고, 저장·제출은 서버에서 모두 거절된다.
+router.get('/projects/:projectId/review-mode', requireTeacher, async (req, res) => {
+  const { rows } = await db.query('SELECT review_only FROM projects WHERE id = $1', [req.params.projectId]);
+  if (rows.length === 0) return res.status(404).json({ error: '프로젝트를 찾을 수 없습니다.' });
+  res.json({ reviewOnly: !!rows[0].review_only });
+});
+
+router.put('/projects/:projectId/review-mode', requireTeacher, async (req, res) => {
+  const reviewOnly = req.body?.reviewOnly === true;
+  const { rows } = await db.query(
+    'UPDATE projects SET review_only = $1 WHERE id = $2 RETURNING review_only',
+    [reviewOnly, req.params.projectId]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: '프로젝트를 찾을 수 없습니다.' });
+  res.json({ reviewOnly: !!rows[0].review_only });
+});
+
 // ---------- 실시간 진행 현황 (반별 학생이 어느 스텝까지 왔는지) ----------
 router.get('/progress/:projectId/:classId', requireTeacher, async (req, res) => {
   const { projectId, classId } = req.params;

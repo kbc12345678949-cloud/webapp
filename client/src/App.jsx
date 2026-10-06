@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import StudentLogin from './StudentLogin';
 import MaterialsPreview from './MaterialsPreview';
+import MyRecord from './MyRecord';
 import Step0 from './steps/Step0';
 import Step1 from './steps/Step1';
 import Step3 from './steps/Step3';
@@ -77,6 +78,7 @@ export default function App() {
   const [step9Answer, setStep9Answer] = useState(null);
   const [stakeholders, setStakeholders] = useState(null);
   const [stakeholderError, setStakeholderError] = useState('');
+  const [recordAnswers, setRecordAnswers] = useState({}); // 열람 모드에서 보여줄 STEP별 저장 답안
 
   const stepId = (key) => session?.steps.find((s) => s.step_key === key)?.id;
 
@@ -106,6 +108,13 @@ export default function App() {
       if (responseByKey.step8) setStep8Answer(responseByKey.step8);
       if (responseByKey.step9) setStep9Answer(responseByKey.step9);
 
+      // 열람 모드(수행평가 종료): 이어하기 대신 "나의 수행평가 기록" 화면으로 보낸다
+      if (sessionData.reviewOnly) {
+        setRecordAnswers(responseByKey);
+        setScreen('record');
+        return;
+      }
+
       setScreen(resumeScreen(sessionData.enrollment, responseByKey));
     } catch (err) {
       setLoadError(err.message);
@@ -128,7 +137,7 @@ export default function App() {
   // 이해관계자는 STEP6·7 둘 다 같은 목록을 쓰므로, STEP6에 진입할 때 한 번만 가져와 공유한다.
   // (새로고침 후 STEP7·8·9로 바로 복귀하는 경우에도 필요하므로 진입 시에도 함께 확인한다)
   useEffect(() => {
-    if (!['step6', 'step7', 'step8', 'step9', 'done'].includes(screen)) return;
+    if (!['step6', 'step7', 'step8', 'step9', 'done', 'record'].includes(screen)) return;
     if (stakeholders || !student?.token || !session?.project.id) return;
     fetchStakeholders(student.token, session.project.id)
       .then(setStakeholders)
@@ -168,6 +177,17 @@ export default function App() {
     <div>
       {screen === 'login' && <StudentLogin onLogin={afterLogin} onPreview={() => setScreen('preview')} />}
       {screen === 'preview' && <MaterialsPreview onBack={() => setScreen('login')} />}
+      {screen === 'record' && (
+        <MyRecord
+          student={student}
+          enrollment={session?.enrollment}
+          answers={recordAnswers}
+          stakeholders={stakeholders}
+          stakeholderError={stakeholderError}
+          budgetGiven={budgetGiven}
+          onLogout={() => window.location.reload()}
+        />
+      )}
       {screen === 'step0' && <Step0 student={student} onStart={() => setScreen('step1')} />}
       {screen === 'step1' && (
         <Step1

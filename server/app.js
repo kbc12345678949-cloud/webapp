@@ -55,5 +55,12 @@ if (require.main === module) {
   }
   const app = createApp();
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`서버 실행 중: http://localhost:${PORT}`));
+  const start = () => app.listen(PORT, () => console.log(`서버 실행 중: http://localhost:${PORT}`));
+  // 나중에 추가된 컬럼(열람 모드 등)을 먼저 채워넣고 서버를 띄운다.
+  // 혹시 실패해도 기존 응시 기능은 그대로 동작해야 하므로, 오류만 기록하고 서버는 띄운다.
+  require('./db/migrate')
+    .ensureSchema(require('./db'))
+    .then(() => console.log('DB 컬럼 점검 완료'))
+    .catch((err) => console.error('DB 컬럼 점검 실패(서버는 계속 실행):', err.message))
+    .finally(start);
 }

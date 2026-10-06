@@ -42,6 +42,19 @@ router.post('/login', async (req, res) => {
   res.json({ token, name: student.name, className: student.class_name });
 });
 
+// ---------- 열람 모드 여부 확인 ----------
+// 열람 모드(review_only)가 켜지면 수행평가가 끝난 것으로 보고, 학생은 자기 기록을 보기만 할 수 있다.
+// 컬럼이 아직 없는 등 조회에 실패하면 "열람 모드 아님"으로 처리해, 기존 응시 기능이 멈추지 않게 한다.
+async function isReviewOnly(projectId) {
+  try {
+    const { rows } = await db.query('SELECT review_only FROM projects WHERE id = $1', [projectId]);
+    return !!rows[0]?.review_only;
+  } catch {
+    return false;
+  }
+}
+const REVIEW_ONLY_ERROR = '수행평가가 종료되어 답안을 수정할 수 없습니다. 내 기록은 보기만 할 수 있어요.';
+
 // ---------- 응시 가능 여부 확인 (반별 예약 시간 체크) ----------
 async function checkWindow(projectId, classId) {
   // "테스트반"은 선생님이 언제든 확인할 수 있도록 예약 시간과 무관하게 항상 열어둔다.
@@ -68,6 +81,25 @@ router.get('/projects/:code', requireStudent, async (req, res) => {
   const { rows: projectRows } = await db.query('SELECT * FROM projects WHERE code = $1', [code]);
   if (projectRows.length === 0) return res.status(404).json({ error: '프로젝트를 찾을 수 없습니다.' });
   const project = projectRows[0];
+  const reviewOnly = !!project.review_only;
+
+  // 열람 모드: 응시 시간과 상관없이 들어와서 "나의 수행평가 기록"을 볼 수 있다.
+  // 이때는 새 진행 정보(enrollment)를 만들지 않고, 이미 있는 기록만 돌려준다.
+  if (reviewOnly) {
+    const { rows: steps } = await db.query(
+      'SELECT * FROM steps WHERE project_id = $1 ORDER BY display_order',
+      [project.id]
+    );
+    const { rows: enrollRows } = await db.query(
+      'SELECT * FROM enrollments WHERE project_id = $1 AND student_id = $2',
+      [project.id, req.student.studentId]
+    );
+    const enrollment = enrollRows[0] || null;
+    const responses = enrollment
+      ? (await db.query('SELECT step_id, answer FROM responses WHERE enrollment_id = $1', [enrollment.id])).rows
+      : [];
+    return res.json({ project, steps, tracks: [], enrollment, responses, reviewOnly: true });
+  }
 
   const { isOpen, schedules } = await checkWindow(project.id, req.student.classId);
   if (!isOpen) {
@@ -102,7 +134,7 @@ router.get('/projects/:code', requireStudent, async (req, res) => {
     [enrollment.id]
   );
 
-  res.json({ project, steps, tracks, enrollment, responses });
+  res.json({ project, steps, tracks, enrollment, responses, reviewOnly: false });
 });
 
 // ---------- 트랙 선택 (조례처럼 트랙이 있는 프로젝트 전용) ----------
@@ -114,6 +146,9 @@ router.post('/enrollments/:enrollmentId/track', requireStudent, async (req, res)
   if (rows.length === 0) return res.status(404).json({ error: '진행 정보를 찾을 수 없습니다.' });
   if (rows[0].student_id !== req.student.studentId) {
     return res.status(403).json({ error: '본인의 진행 정보만 수정할 수 있습니다.' });
+  }
+  if (await isReviewOnly(rows[0].project_id)) {
+    return res.status(423).json({ error: REVIEW_ONLY_ERROR });
   }
   if (rows[0].track_locked) {
     return res.status(409).json({ error: '이미 트랙이 확정되어 변경할 수 없습니다.' });
@@ -168,6 +203,9 @@ router.put('/enrollments/:enrollmentId/responses/:stepId', requireStudent, async
   if (enroll.rows[0].student_id !== req.student.studentId) {
     return res.status(403).json({ error: '본인의 진행 정보에만 답안을 저장할 수 있습니다.' });
   }
+  if (await isReviewOnly(enroll.rows[0].project_id)) {
+    return res.status(423).json({ error: REVIEW_ONLY_ERROR });
+  }
   if (enroll.rows[0].submitted_at) {
     return res.status(409).json({ error: '이미 제출을 완료하여 답안을 수정할 수 없습니다.' });
   }
@@ -195,6 +233,9 @@ router.post('/enrollments/:enrollmentId/submit', requireStudent, async (req, res
   if (enroll.rows[0].student_id !== req.student.studentId) {
     return res.status(403).json({ error: '본인의 진행 정보만 제출할 수 있습니다.' });
   }
+  if (await isReviewOnly(enroll.rows[0].project_id)) {
+    return res.status(423).json({ error: REVIEW_ONLY_ERROR });
+  }
   if (enroll.rows[0].submitted_at) {
     return res.status(409).json({ error: '이미 제출되었습니다.' });
   }
@@ -205,4 +246,4 @@ router.post('/enrollments/:enrollmentId/submit', requireStudent, async (req, res
   res.json(updated.rows[0]);
 });
 
-module.exports = { router, requireStudent, checkWindow, JWT_SECRET };
+module.exports = { router, requireStudent, checkWindow, isReviewOnly, JWT_SECRET };

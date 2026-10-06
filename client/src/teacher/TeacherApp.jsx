@@ -5,12 +5,14 @@ import ScheduleControl from './ScheduleControl';
 import LiveDistribution from './LiveDistribution';
 import StudentUpload from './StudentUpload';
 import ProgressOverview from './ProgressOverview';
+import ReviewModeControl from './ReviewModeControl';
 
 const TABS = [
   { key: 'upload', label: '학생 명단 업로드' },
   { key: 'schedule', label: '응시 개폐 관리' },
   { key: 'progress', label: '진행 현황' },
   { key: 'distribution', label: '실시간 집계' },
+  { key: 'review', label: '수행평가 종료·열람' },
 ];
 
 export default function TeacherApp({ projectId = 1 }) {
@@ -53,6 +55,7 @@ export default function TeacherApp({ projectId = 1 }) {
       {tab === 'schedule' && <ScheduleControl token={token} projectId={projectId} />}
       {tab === 'progress' && <ProgressOverview token={token} projectId={projectId} />}
       {tab === 'distribution' && <LiveDistribution token={token} projectId={projectId} />}
+      {tab === 'review' && <ReviewModeControl token={token} projectId={projectId} />}
     </div>
   );
 }
