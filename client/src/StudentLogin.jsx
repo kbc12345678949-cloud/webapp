@@ -6,7 +6,7 @@ import { studentLogin } from './api';
 const CLASS_OPTIONS = ['2학년 1반', '2학년 2반', '2학년 3반', '테스트반'];
 
 // projectLabel·totalSteps·extraActions는 조례 수행평가처럼 다른 화면에서 재사용할 때만 넘긴다(기본값은 관광정책).
-export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀 브리핑', totalSteps = 9, extraActions = null }) {
+export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀 브리핑', totalSteps = 9, extraActions = null, topSlot = null }) {
   const [className, setClassName] = useState(CLASS_OPTIONS[0]);
   const [studentNo, setStudentNo] = useState('');
   const [error, setError] = useState('');
@@ -97,6 +97,7 @@ export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀
       <ProgressHeader projectLabel={projectLabel} currentStep={0} totalSteps={totalSteps} />
 
       <form onSubmit={submit} style={{ padding: '32px 20px' }}>
+        {topSlot}
         <h3 style={{ color: 'var(--color-navy)', fontSize: 18, fontWeight: 500, margin: '0 0 6px' }}>
           로그인
         </h3>

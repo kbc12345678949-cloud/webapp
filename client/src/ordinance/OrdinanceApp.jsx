@@ -79,7 +79,75 @@ function formatKST(d) {
   return `${get('month')}/${get('day')}(${get('weekday')}) ${get('hour')}:${get('minute')}`;
 }
 
+// ---------------- 휴대폰 / 태블릿 화면 모드 ----------------
+// 고른 모드는 이 기기에만 기억된다. 태블릿 모드는 화면 폭을 넓혀 좌우 여백을 줄인다.
+const LAYOUT_KEY = 'ordinance:layout';
+function useLayout() {
+  const [layout, setLayout] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LAYOUT_KEY);
+      if (saved === 'phone' || saved === 'tablet') return saved;
+    } catch {
+      /* 무시 */
+    }
+    return 'phone';
+  });
+  useEffect(() => {
+    document.documentElement.dataset.layout = layout;
+    try {
+      localStorage.setItem(LAYOUT_KEY, layout);
+    } catch {
+      /* 무시 */
+    }
+  }, [layout]);
+  return [layout, setLayout];
+}
+
+function LayoutToggle({ layout, onChange }) {
+  const btn = (key, label) => {
+    const active = layout === key;
+    return (
+      <button
+        type="button"
+        onClick={() => onChange(key)}
+        aria-pressed={active}
+        style={{
+          flex: 1,
+          padding: '10px 8px',
+          borderRadius: 8,
+          border: 'none',
+          background: active ? 'var(--color-navy)' : 'transparent',
+          color: active ? 'var(--color-navy-text-on)' : 'var(--color-text-body)',
+          fontSize: 13.5,
+          fontWeight: active ? 600 : 400,
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 6px' }}>화면 크기 선택</p>
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          padding: 4,
+          background: '#FFFFFF',
+          border: '1px solid var(--color-border)',
+          borderRadius: 10,
+        }}
+      >
+        {btn('phone', '📱 휴대폰 모드로 보기')}
+        {btn('tablet', '📲 태블릿 모드로 보기')}
+      </div>
+    </div>
+  );
+}
+
 export default function OrdinanceApp() {
+  const [layout, setLayout] = useLayout();
   const [screen, setScreen] = useState('login');
   const [student, setStudent] = useState(null);
   const [session, setSession] = useState(null); // { project, steps, tracks, enrollment }
@@ -387,6 +455,7 @@ export default function OrdinanceApp() {
         totalSteps={TOTAL_STEPS}
         onLogin={onLogin}
         extraActions={<PreviewButtons onOpen={setScreen} />}
+        topSlot={<LayoutToggle layout={layout} onChange={setLayout} />}
       />
     );
   }

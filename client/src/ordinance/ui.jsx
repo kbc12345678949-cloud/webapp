@@ -73,7 +73,7 @@ export function CityNotice() {
 // ---------- 주제 카드 6개 ----------
 export function TrackCards({ selectedCode, onSelect, busy }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(var(--track-cols, 2), 1fr)', gap: 10 }}>
       {TRACKS.map((t) => {
         const sel = selectedCode === t.code;
         return (
@@ -414,30 +414,50 @@ export function ConfirmModal({ message, yesLabel = '예', noLabel = '아니오',
   );
 }
 
-// 화면 전체를 덮는 읽기 전용 패널 (자료 다시 보기 / 전체 질문 / 내 답변)
+// 팝업 창 (자료 다시 보기 / 전체 질문 / 내 답변) — 뒤 화면을 어둡게 가리고 가운데 카드로 띄운다.
+// 바깥 어두운 곳을 누르거나 [닫기]를 누르면 닫힌다. 내용이 길면 카드 안에서만 스크롤된다.
 export function Sheet({ title, onClose, children }) {
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'var(--color-bg)',
+        background: 'rgba(27,42,65,0.55)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '7vh 16px',
         zIndex: 40,
-        overflowY: 'auto',
+        animation: 'ordFade 0.15s ease-out',
       }}
     >
-      <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto' }}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 'min(calc(var(--max-width) - 40px), 760px)',
+          maxHeight: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--color-bg)',
+          borderRadius: 16,
+          overflow: 'hidden',
+          boxShadow: '0 18px 50px rgba(0,0,0,0.35)',
+          animation: 'ordPop 0.18s ease-out',
+        }}
+      >
         <div
           style={{
-            position: 'sticky',
-            top: 0,
             background: 'var(--color-navy)',
             color: '#FFFFFF',
-            padding: '12px 16px',
+            padding: '12px 14px 12px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            zIndex: 1,
+            flexShrink: 0,
           }}
         >
           <span style={{ fontSize: 14.5, fontWeight: 600 }}>{title}</span>
@@ -448,7 +468,7 @@ export function Sheet({ title, onClose, children }) {
             닫기 ✕
           </button>
         </div>
-        <div style={{ padding: '16px 16px 40px' }}>{children}</div>
+        <div style={{ padding: '14px 14px 20px', overflowY: 'auto' }}>{children}</div>
       </div>
     </div>
   );

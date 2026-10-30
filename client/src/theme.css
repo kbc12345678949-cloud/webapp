@@ -45,3 +45,13 @@ button {
   font-family: var(--font-family);
   cursor: pointer;
 }
+
+/* 조례 수행평가 태블릿 모드: 학생이 로그인 화면에서 고르면 <html data-layout="tablet">이 붙는다.
+   교사 화면에서는 이 값을 쓰지 않으므로 영향이 없다. */
+:root[data-layout="tablet"] {
+  --max-width: 880px;
+  --track-cols: 3;
+}
+
+@keyframes ordFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ordPop { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
