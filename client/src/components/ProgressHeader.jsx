@@ -2,7 +2,8 @@
 // 모든 STEP 화면 상단에 공통으로 쓰이는 헤더.
 // 프로젝트명, 로그인한 학생 정보(학번·이름), 진행 표시(현재/전체)를 보여준다.
 
-export default function ProgressHeader({ projectLabel, currentStep, totalSteps, studentNo, studentName }) {
+// extra: 오른쪽 학생 정보 옆에 넣을 작은 버튼 등(조례 수행평가의 휴대폰/태블릿 모드 전환). 없으면 기존과 동일.
+export default function ProgressHeader({ projectLabel, currentStep, totalSteps, studentNo, studentName, extra = null }) {
   return (
     <div
       style={{
@@ -17,15 +18,18 @@ export default function ProgressHeader({ projectLabel, currentStep, totalSteps, 
         {projectLabel}
       </span>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {extra}
       <div style={{ textAlign: 'right', lineHeight: 1.3 }}>
         {studentName && (
-          <div style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 500 }}>
+          <div style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap' }}>
             {studentNo} {studentName}
           </div>
         )}
         <div style={{ color: 'var(--color-text-muted)', fontSize: 10.5 }}>
           {currentStep} / {totalSteps}
         </div>
+      </div>
       </div>
     </div>
   );

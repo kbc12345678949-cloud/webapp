@@ -146,6 +146,30 @@ function LayoutToggle({ layout, onChange }) {
   );
 }
 
+// 로그인한 뒤 화면 위쪽(진한 띠)에 두는 작은 전환 버튼. 누르면 다른 모드로 바로 바뀐다.
+function LayoutSwitch({ layout, onChange }) {
+  const next = layout === 'tablet' ? 'phone' : 'tablet';
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(next)}
+      title="화면 크기 바꾸기"
+      style={{
+        background: 'rgba(255,255,255,0.12)',
+        color: '#FFFFFF',
+        border: '1px solid rgba(255,255,255,0.35)',
+        borderRadius: 8,
+        padding: '5px 8px',
+        fontSize: 11,
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+    >
+      {next === 'tablet' ? '📲 태블릿 모드' : '📱 휴대폰 모드'}
+    </button>
+  );
+}
+
 export default function OrdinanceApp() {
   const [layout, setLayout] = useLayout();
   const [screen, setScreen] = useState('login');
@@ -467,6 +491,7 @@ export default function OrdinanceApp() {
       totalSteps={TOTAL_STEPS}
       studentNo={student?.studentNo}
       studentName={student?.name}
+      extra={<LayoutSwitch layout={layout} onChange={setLayout} />}
     />
   );
 
