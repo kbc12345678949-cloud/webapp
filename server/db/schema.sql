@@ -140,6 +140,7 @@ CREATE TABLE rubric_items (
   mid_score     INTEGER NOT NULL,               -- '중' 점수
   base_score    INTEGER NOT NULL,               -- '하' 점수 (제출만 해도 받는 기본점수)
   display_order INTEGER NOT NULL,
+  scale         JSONB,                          -- A~E 5단계 점수표 [A,B,C,D,E] (조례). NULL이면 상/중/하
   UNIQUE (project_id, item_key)
 );
 
@@ -150,6 +151,17 @@ CREATE TABLE grades (
   score           INTEGER NOT NULL,
   graded_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (enrollment_id, rubric_item_id)
+);
+
+-- 12-1. 주제 변경 전 답안 보관: 학생이 주제를 바꾸면 그때까지의 답안을 여기 옮겨 둔다(교사만 열람·복구)
+CREATE TABLE response_archives (
+  id            SERIAL PRIMARY KEY,
+  enrollment_id INTEGER NOT NULL REFERENCES enrollments(id) ON DELETE CASCADE,
+  track_id      INTEGER REFERENCES tracks(id),
+  answers       JSONB NOT NULL DEFAULT '{}',    -- { o3: {...}, o4: {...}, ... }
+  reason        VARCHAR(30) NOT NULL DEFAULT 'track_change',  -- 'track_change' | 'before_restore'
+  archived_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  restored_at   TIMESTAMPTZ
 );
 
 -- 13. 교사 계정 (간단한 비밀번호 로그인)

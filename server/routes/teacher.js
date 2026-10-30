@@ -108,6 +108,12 @@ router.post('/schedules/:scheduleId/toggle', requireTeacher, async (req, res) =>
   res.json(rows[0]);
 });
 
+// ---------- 수행평가(프로젝트) 목록: 교사 화면 상단에서 관광정책/조례를 고를 때 사용 ----------
+router.get('/projects', requireTeacher, async (req, res) => {
+  const { rows } = await db.query('SELECT id, code, title FROM projects ORDER BY id');
+  res.json(rows);
+});
+
 // ---------- 열람 모드(수행평가 종료) 조회·변경 ----------
 // 켜면: 학생은 응시 시간과 상관없이 로그인해 자기 기록을 보기만 할 수 있고, 저장·제출은 서버에서 모두 거절된다.
 router.get('/projects/:projectId/review-mode', requireTeacher, async (req, res) => {
@@ -131,12 +137,14 @@ router.get('/progress/:projectId/:classId', requireTeacher, async (req, res) => 
   const { projectId, classId } = req.params;
   const { rows } = await db.query(
     `SELECT st.id AS student_id, st.name, st.student_no, e.id AS enrollment_id, e.submitted_at,
+            e.track_locked, t.title AS track_title, t.code AS track_code,
             COUNT(r.id) AS steps_done
      FROM students st
      LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
+     LEFT JOIN tracks t ON t.id = e.track_id
      LEFT JOIN responses r ON r.enrollment_id = e.id
      WHERE st.class_id = $2
-     GROUP BY st.id, st.name, st.student_no, e.id, e.submitted_at
+     GROUP BY st.id, st.name, st.student_no, e.id, e.submitted_at, e.track_locked, t.title, t.code
      ORDER BY st.student_no`,
     [projectId, classId]
   );
@@ -168,6 +176,105 @@ router.get('/distribution/:projectId/:stepKey', requireTeacher, async (req, res)
   );
   const total = rows.reduce((sum, r) => sum + Number(r.count), 0);
   res.json({ stepKey, total, distribution: rows, note: '지금까지 제출한 인원 기준' });
+});
+
+// ---------- 주제(트랙) 선택 분포 (조례) ----------
+router.get('/track-distribution/:projectId', requireTeacher, async (req, res) => {
+  const { projectId } = req.params;
+  const { classId } = req.query;
+  const params = [projectId];
+  let classFilter = '';
+  if (classId) {
+    classFilter = 'AND st.class_id = $2';
+    params.push(classId);
+  }
+  const { rows: tracks } = await db.query(
+    'SELECT id, code, title FROM tracks WHERE project_id = $1 ORDER BY display_order',
+    [projectId]
+  );
+  const { rows } = await db.query(
+    `SELECT e.track_id,
+            COUNT(*) AS count,
+            COUNT(*) FILTER (WHERE e.track_locked) AS locked,
+            COUNT(*) FILTER (WHERE e.submitted_at IS NOT NULL) AS submitted
+     FROM enrollments e
+     JOIN students st ON st.id = e.student_id
+     WHERE e.project_id = $1 ${classFilter}
+     GROUP BY e.track_id`,
+    params
+  );
+  const byTrack = Object.fromEntries(rows.map((r) => [r.track_id ?? 'none', r]));
+  const distribution = tracks.map((t) => ({
+    trackId: t.id,
+    code: t.code,
+    title: t.title,
+    count: Number(byTrack[t.id]?.count || 0),
+    locked: Number(byTrack[t.id]?.locked || 0),
+    submitted: Number(byTrack[t.id]?.submitted || 0),
+  }));
+  const undecided = Number(byTrack.none?.count || 0);
+  const total = distribution.reduce((sum, d) => sum + d.count, 0) + undecided;
+  res.json({ total, undecided, distribution });
+});
+
+// ---------- 주제 변경 전 기록 (조례) ----------
+router.get('/archives/:enrollmentId', requireTeacher, async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT a.id, a.track_id, t.title AS track_title, t.code AS track_code, a.answers, a.reason, a.archived_at, a.restored_at
+     FROM response_archives a LEFT JOIN tracks t ON t.id = a.track_id
+     WHERE a.enrollment_id = $1 ORDER BY a.archived_at DESC, a.id DESC`,
+    [req.params.enrollmentId]
+  );
+  res.json(rows);
+});
+
+// 보관된 기록으로 되돌리기: 지금 답안도 혹시 몰라 먼저 보관한 뒤, 보관 기록을 현재 답안으로 옮긴다.
+router.post('/archives/:archiveId/restore', requireTeacher, async (req, res) => {
+  const { rows: archRows } = await db.query('SELECT * FROM response_archives WHERE id = $1', [req.params.archiveId]);
+  if (archRows.length === 0) return res.status(404).json({ error: '보관 기록을 찾을 수 없습니다.' });
+  const archive = archRows[0];
+  const { rows: enrollRows } = await db.query('SELECT * FROM enrollments WHERE id = $1', [archive.enrollment_id]);
+  const enrollment = enrollRows[0];
+
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: current } = await client.query(
+      `SELECT s.step_key, r.answer FROM responses r JOIN steps s ON s.id = r.step_id WHERE r.enrollment_id = $1`,
+      [enrollment.id]
+    );
+    if (current.length > 0) {
+      await client.query(
+        `INSERT INTO response_archives (enrollment_id, track_id, answers, reason) VALUES ($1, $2, $3, 'before_restore')`,
+        [enrollment.id, enrollment.track_id, JSON.stringify(Object.fromEntries(current.map((r) => [r.step_key, r.answer])))]
+      );
+      await client.query('DELETE FROM responses WHERE enrollment_id = $1', [enrollment.id]);
+    }
+    const { rows: steps } = await client.query('SELECT id, step_key FROM steps WHERE project_id = $1', [
+      enrollment.project_id,
+    ]);
+    const stepId = Object.fromEntries(steps.map((st) => [st.step_key, st.id]));
+    for (const [key, answer] of Object.entries(archive.answers || {})) {
+      if (!stepId[key]) continue;
+      await client.query(
+        `INSERT INTO responses (enrollment_id, step_id, answer, updated_at) VALUES ($1, $2, $3, now())`,
+        [enrollment.id, stepId[key], JSON.stringify(answer)]
+      );
+    }
+    await client.query('UPDATE enrollments SET track_id = $1, track_locked = $2 WHERE id = $3', [
+      archive.track_id,
+      !!archive.track_id,
+      enrollment.id,
+    ]);
+    await client.query('UPDATE response_archives SET restored_at = now() WHERE id = $1', [archive.id]);
+    await client.query('COMMIT');
+    res.json({ restored: true });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 // ---------- 학생 답안 열람 ----------
@@ -288,6 +395,8 @@ const TAG_LABEL = { benefit: '혜택', harm: '불이익', neutral: '무관' };
 
 router.get('/export-answers/:projectId/:classId', requireTeacher, async (req, res) => {
   const { projectId, classId } = req.params;
+  const proj = await db.query('SELECT code FROM projects WHERE id = $1', [projectId]);
+  if (proj.rows[0]?.code === 'ordinance') return exportOrdinanceAnswers(req, res);
 
   const students = await db.query(
     `SELECT st.id AS student_id, st.student_no, st.name, e.id AS enrollment_id, e.submitted_at
@@ -373,5 +482,74 @@ router.get('/export-answers/:projectId/:classId', requireTeacher, async (req, re
   res.setHeader('Content-Disposition', `attachment; filename="answers_${projectId}_${classId}.csv"`);
   res.send(csv);
 });
+
+// ---------- 조례 수행평가 답안 전체 내보내기 (최종 답안만, 변경 전 기록은 제외) ----------
+const ORDINANCE_MATERIAL_LABEL = {
+  m1: '자료1 통계',
+  m2: '자료2 찬성 인터뷰',
+  m3: '자료3 반대 인터뷰',
+  m4: '자료4 현재 상황',
+  m5: '자료5 관련 상위법',
+};
+
+async function exportOrdinanceAnswers(req, res) {
+  const { projectId, classId } = req.params;
+  const students = await db.query(
+    `SELECT st.student_no, st.name, e.id AS enrollment_id, e.submitted_at, t.title AS track_title
+     FROM students st
+     LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
+     LEFT JOIN tracks t ON t.id = e.track_id
+     WHERE st.class_id = $2
+     ORDER BY st.student_no`,
+    [projectId, classId]
+  );
+  const responses = await db.query(
+    `SELECT r.enrollment_id, s.step_key, r.answer
+     FROM responses r JOIN steps s ON s.id = r.step_id JOIN enrollments e ON e.id = r.enrollment_id
+     WHERE e.project_id = $1`,
+    [projectId]
+  );
+  const byEnrollment = {};
+  responses.rows.forEach((r) => {
+    byEnrollment[r.enrollment_id] = byEnrollment[r.enrollment_id] || {};
+    byEnrollment[r.enrollment_id][r.step_key] = r.answer || {};
+  });
+
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const header = [
+    '학번', '이름', '제출 여부', '제출 시각', '주제',
+    '3-1 심각성', '3-2 방치 시', '3-3 왜 정치적 결정인가',
+    '4-1 조례 조항', '4-2 기존 한계 보완', '4-3 상위법 확인',
+    '5-1 반대자와 이유', '5-2 절충안',
+    '6-1 근거 자료', '6-1 자료별 설명',
+    '7-1 정치 과정·시민 역할', '7-2 왜 조례인가',
+    '8-1 고민', '8-2 해결 여부', '8-3 우리 지역(채점 제외)',
+  ];
+  const lines = [header.map(esc).join(',')];
+  for (const s of students.rows) {
+    const a = byEnrollment[s.enrollment_id] || {};
+    const o3 = a.o3 || {}, o4 = a.o4 || {}, o5 = a.o5 || {}, o6 = a.o6 || {}, o7 = a.o7 || {}, o8 = a.o8 || {};
+    const checked = Array.isArray(o6.checked) ? o6.checked : [];
+    const row = [
+      s.student_no,
+      s.name,
+      s.submitted_at ? '제출 완료' : '미제출',
+      formatKST(s.submitted_at),
+      s.track_title || '',
+      o3.q1, o3.q2, o3.q3,
+      o4.q1, o4.q2, o4.q3,
+      o5.q1, o5.q2,
+      checked.map((k) => ORDINANCE_MATERIAL_LABEL[k] || k).join(', '),
+      checked.map((k) => `[${ORDINANCE_MATERIAL_LABEL[k] || k}] ${(o6.reasons || {})[k] || ''}`).join('\n'),
+      o7.q1, o7.q2,
+      o8.q1, o8.q2, o8.q3,
+    ];
+    lines.push(row.map(esc).join(','));
+  }
+  const csv = '\uFEFF' + lines.join('\r\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="answers_${projectId}_${classId}.csv"`);
+  res.send(csv);
+}
 
 module.exports = { router, requireTeacher };

@@ -29,6 +29,16 @@ export default function GradingPanel({ token, projectId, enrollmentId, studentNa
     load();
   }, [load]);
 
+  // A~E 5단계 점수표(scale)가 있는 항목(조례)은 A~E 버튼으로, 없으면 기존 상/중/하로 채점한다.
+  const tiersFor = (item) => {
+    const scale = Array.isArray(item.scale) ? item.scale : null;
+    if (!scale) return TIERS.map((t) => ({ ...t, score: t.key === 'none' ? 0 : scoreFor(item, t.key) }));
+    return [
+      ...['A', 'B', 'C', 'D', 'E'].map((label, i) => ({ key: label, label, score: scale[i] })),
+      { key: 'none', label: '미제출', score: 0 },
+    ];
+  };
+
   const scoreFor = (item, tierKey) => {
     if (tierKey === 'high') return item.max_score;
     if (tierKey === 'mid') return item.mid_score;
@@ -44,10 +54,16 @@ export default function GradingPanel({ token, projectId, enrollmentId, studentNa
     return 'none';
   };
 
-  const selectTier = async (item, tierKey) => {
-    const score = scoreFor(item, tierKey);
-    await teacherApi.saveGrade(token, enrollmentId, item.id, score);
+  const selectTier = async (item, tier) => {
+    await teacherApi.saveGrade(token, enrollmentId, item.id, tier.score);
     await load();
+  };
+
+  // 지금 저장된 점수에 해당하는 버튼 (A~E에서 성찰 E=0점처럼 '미제출'과 점수가 같으면 등급 쪽을 표시)
+  const activeKey = (item, tiers) => {
+    if (!Array.isArray(item.scale)) return tierOf(item);
+    if (item.score === null || item.score === undefined) return null;
+    return tiers.find((t) => t.score === item.score)?.key ?? null;
   };
 
   if (error) return <p style={{ color: 'var(--color-coral)', fontSize: 13 }}>{error}</p>;
@@ -70,19 +86,20 @@ export default function GradingPanel({ token, projectId, enrollmentId, studentNa
       </div>
 
       {items.map((item) => {
-        const current = tierOf(item);
+        const tiers = tiersFor(item);
+        const current = activeKey(item, tiers);
         return (
           <div key={item.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--color-border)' }}>
             <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 6px' }}>
               {item.title} <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(최대 {item.max_score}점)</span>
             </p>
             <div style={{ display: 'flex', gap: 6 }}>
-              {TIERS.map((t) => {
+              {tiers.map((t) => {
                 const active = current === t.key;
                 return (
                   <button
                     key={t.key}
-                    onClick={() => selectTier(item, t.key)}
+                    onClick={() => selectTier(item, t)}
                     style={{
                       flex: 1,
                       padding: '8px 4px',
@@ -94,7 +111,7 @@ export default function GradingPanel({ token, projectId, enrollmentId, studentNa
                     }}
                   >
                     {t.label}
-                    {t.key !== 'none' && ` (${scoreFor(item, t.key)})`}
+                    {t.key !== 'none' && ` (${t.score})`}
                   </button>
                 );
               })}

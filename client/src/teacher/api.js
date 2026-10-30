@@ -48,6 +48,11 @@ export const teacherApi = {
   getReviewMode: (token, projectId) => request(`/api/teacher/projects/${projectId}/review-mode`, { token }),
   setReviewMode: (token, projectId, reviewOnly) =>
     request(`/api/teacher/projects/${projectId}/review-mode`, { method: 'PUT', token, body: { reviewOnly } }),
+  getProjects: (token) => request('/api/teacher/projects', { token }),
+  getTrackDistribution: (token, projectId, classId) =>
+    request(`/api/teacher/track-distribution/${projectId}${classId ? `?classId=${classId}` : ''}`, { token }),
+  getArchives: (token, enrollmentId) => request(`/api/teacher/archives/${enrollmentId}`, { token }),
+  restoreArchive: (token, archiveId) => request(`/api/teacher/archives/${archiveId}/restore`, { method: 'POST', token }),
   getProgress: (token, projectId, classId) => request(`/api/teacher/progress/${projectId}/${classId}`, { token }),
   getResponses: (token, enrollmentId) => request(`/api/teacher/responses/${enrollmentId}`, { token }),
   getRubric: (token, projectId) => request(`/api/teacher/rubric/${projectId}`, { token }),

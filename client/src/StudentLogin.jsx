@@ -5,7 +5,8 @@ import { studentLogin } from './api';
 
 const CLASS_OPTIONS = ['2학년 1반', '2학년 2반', '2학년 3반', '테스트반'];
 
-export default function StudentLogin({ onLogin, onPreview }) {
+// projectLabel·totalSteps·extraActions는 조례 수행평가처럼 다른 화면에서 재사용할 때만 넘긴다(기본값은 관광정책).
+export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀 브리핑', totalSteps = 9, extraActions = null }) {
   const [className, setClassName] = useState(CLASS_OPTIONS[0]);
   const [studentNo, setStudentNo] = useState('');
   const [error, setError] = useState('');
@@ -41,7 +42,7 @@ export default function StudentLogin({ onLogin, onPreview }) {
   if (phase === 'confirm') {
     return (
       <div>
-        <ProgressHeader projectLabel="TF팀 브리핑" currentStep={0} totalSteps={9} />
+        <ProgressHeader projectLabel={projectLabel} currentStep={0} totalSteps={totalSteps} />
         <div style={{ padding: '40px 20px', textAlign: 'center' }}>
           <p style={{ color: 'var(--color-text-body)', fontSize: 13, margin: '0 0 10px' }}>
             아래 정보로 로그인하려고 합니다
@@ -93,7 +94,7 @@ export default function StudentLogin({ onLogin, onPreview }) {
 
   return (
     <div>
-      <ProgressHeader projectLabel="TF팀 브리핑" currentStep={0} totalSteps={9} />
+      <ProgressHeader projectLabel={projectLabel} currentStep={0} totalSteps={totalSteps} />
 
       <form onSubmit={submit} style={{ padding: '32px 20px' }}>
         <h3 style={{ color: 'var(--color-navy)', fontSize: 18, fontWeight: 500, margin: '0 0 6px' }}>
@@ -166,6 +167,8 @@ export default function StudentLogin({ onLogin, onPreview }) {
           {loading ? '확인 중...' : '로그인'}
         </button>
 
+        {extraActions}
+        {!extraActions && (
         <button
           type="button"
           onClick={onPreview}
@@ -184,6 +187,7 @@ export default function StudentLogin({ onLogin, onPreview }) {
         >
           수행평가 전에 자료만 미리 보기 →
         </button>
+        )}
       </form>
     </div>
   );

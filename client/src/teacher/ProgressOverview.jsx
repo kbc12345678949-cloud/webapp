@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react';
 import { teacherApi } from './api';
 import GradingPanel from './GradingPanel';
+import OrdinanceAnswerView from './OrdinanceAnswerView';
 
-export default function ProgressOverview({ token, projectId }) {
+export default function ProgressOverview({ token, projectId, projectCode }) {
+  const isOrdinance = projectCode === 'ordinance';
   const [classes, setClasses] = useState([]);
   const [className, setClassName] = useState('');
   const [students, setStudents] = useState(null);
@@ -84,6 +86,16 @@ export default function ProgressOverview({ token, projectId }) {
     setResponses(data);
   };
 
+  // 되돌리기 후: 목록(주제·진행 단계)과 답안을 새로 불러온다
+  const refreshAfterRestore = async () => {
+    if (!classId || !selected) return;
+    const list = await teacherApi.getProgress(token, projectId, classId);
+    setStudents(list);
+    const fresh = list.find((s) => s.student_id === selected.student_id) || selected;
+    setSelected(fresh);
+    setResponses(await teacherApi.getResponses(token, fresh.enrollment_id));
+  };
+
   return (
     <div style={{ padding: 20, maxWidth: 720 }}>
       <h2 style={{ color: 'var(--color-navy)', fontSize: 19, fontWeight: 500, marginBottom: 16 }}>
@@ -154,7 +166,8 @@ export default function ProgressOverview({ token, projectId }) {
             <tr style={{ borderBottom: '1px solid var(--color-border)', textAlign: 'left' }}>
               <th style={{ padding: 8 }}>학번</th>
               <th style={{ padding: 8 }}>이름</th>
-              <th style={{ padding: 8 }}>진행 단계</th>
+              {isOrdinance && <th style={{ padding: 8 }}>주제</th>}
+              <th style={{ padding: 8 }}>{isOrdinance ? '작성한 단계' : '진행 단계'}</th>
               <th style={{ padding: 8 }}>제출 여부</th>
               <th style={{ padding: 8 }}></th>
             </tr>
@@ -164,7 +177,13 @@ export default function ProgressOverview({ token, projectId }) {
               <tr key={s.student_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <td style={{ padding: 8 }}>{s.student_no}</td>
                 <td style={{ padding: 8 }}>{s.name}</td>
-                <td style={{ padding: 8 }}>{s.steps_done}개</td>
+                {isOrdinance && (
+                  <td style={{ padding: 8, fontSize: 12 }}>
+                    {s.track_title || '-'}
+                    {s.track_title && !s.track_locked && <span style={{ color: 'var(--color-text-muted)' }}> (고정 전)</span>}
+                  </td>
+                )}
+                <td style={{ padding: 8 }}>{isOrdinance ? `${s.steps_done} / 6` : `${s.steps_done}개`}</td>
                 <td style={{ padding: 8, color: s.submitted_at ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
                   {s.submitted_at ? '제출 완료' : '미제출'}
                 </td>
@@ -206,7 +225,17 @@ export default function ProgressOverview({ token, projectId }) {
             {!selected.enrollment_id && (
               <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>아직 시작하지 않았습니다.</p>
             )}
-            {responses &&
+            {isOrdinance && selected.enrollment_id && (
+              <OrdinanceAnswerView
+                key={selected.enrollment_id}
+                token={token}
+                student={selected}
+                responses={responses}
+                onRestored={refreshAfterRestore}
+              />
+            )}
+            {!isOrdinance &&
+              responses &&
               responses.map((r) => (
                 <div key={r.step_key} style={{ marginBottom: 10 }}>
                   <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-teal)', margin: 0 }}>{r.title}</p>

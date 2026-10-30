@@ -42,10 +42,10 @@ describe('ScheduleControl ↔ 실제 서버 통합 테스트', () => {
 
   it('"실제 시간표 6건 한 번에 등록"을 누르면 3개 반 × 2교시 = 6건이 실제 서버에 정확히 저장된다', async () => {
     render(<ScheduleControl token={teacherToken} projectId={1} />);
-    await screen.findByText('실제 시간표 6건 한 번에 등록');
-    fireEvent.click(screen.getByText('실제 시간표 6건 한 번에 등록'));
+    await screen.findByText('시간표 6건 한 번에 등록');
+    fireEvent.click(screen.getByText('시간표 6건 한 번에 등록'));
 
-    await waitFor(() => expect(screen.getByText('실제 운영 시간표 6건 등록 완료')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('운영 시간표 6건 등록 완료')).toBeInTheDocument());
 
     expect(screen.getAllByText('2학년 1반 · 1교시').length).toBe(1);
     expect(screen.getAllByText('2학년 1반 · 2교시').length).toBe(1);

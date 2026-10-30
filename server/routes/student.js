@@ -98,7 +98,11 @@ router.get('/projects/:code', requireStudent, async (req, res) => {
     const responses = enrollment
       ? (await db.query('SELECT step_id, answer FROM responses WHERE enrollment_id = $1', [enrollment.id])).rows
       : [];
-    return res.json({ project, steps, tracks: [], enrollment, responses, reviewOnly: true });
+    const { rows: tracks } = await db.query(
+      'SELECT * FROM tracks WHERE project_id = $1 ORDER BY display_order',
+      [project.id]
+    );
+    return res.json({ project, steps, tracks, enrollment, responses, reviewOnly: true });
   }
 
   const { isOpen, schedules } = await checkWindow(project.id, req.student.classId);
@@ -153,6 +157,11 @@ router.post('/enrollments/:enrollmentId/track', requireStudent, async (req, res)
   if (rows[0].track_locked) {
     return res.status(409).json({ error: '이미 트랙이 확정되어 변경할 수 없습니다.' });
   }
+  if (rows[0].submitted_at) {
+    return res.status(409).json({ error: '이미 제출을 완료하여 바꿀 수 없습니다.' });
+  }
+  const valid = await db.query('SELECT id FROM tracks WHERE id = $1 AND project_id = $2', [trackId, rows[0].project_id]);
+  if (valid.rows.length === 0) return res.status(400).json({ error: '선택할 수 없는 주제입니다.' });
   const updated = await db.query(
     'UPDATE enrollments SET track_id = $1 WHERE id = $2 RETURNING *',
     [trackId, enrollmentId]
@@ -209,6 +218,14 @@ router.put('/enrollments/:enrollmentId/responses/:stepId', requireStudent, async
   if (enroll.rows[0].submitted_at) {
     return res.status(409).json({ error: '이미 제출을 완료하여 답안을 수정할 수 없습니다.' });
   }
+  // 주제(트랙)가 있는 프로젝트: 다른 창에서 주제를 바꾼 뒤 예전 화면이 저장을 시도하면,
+  // 예전 주제의 답이 새 주제에 섞이지 않도록 거절한다.
+  if (req.body.trackId !== undefined) {
+    const current = enroll.rows[0].track_id;
+    if (!current || Number(req.body.trackId) !== Number(current)) {
+      return res.status(409).json({ error: '주제가 바뀌어 저장하지 않았어요. 화면을 새로고침해 주세요.', code: 'TRACK_MISMATCH' });
+    }
+  }
 
   // 트랙 잠금: 서술형 첫 입력 시 잠금 처리 (조례 프로젝트 등)
   if (!enroll.rows[0].track_locked && enroll.rows[0].track_id) {
@@ -223,6 +240,73 @@ router.put('/enrollments/:enrollmentId/responses/:stepId', requireStudent, async
     [enrollmentId, stepId, JSON.stringify(answer)]
   );
   res.json({ saved: true, savedAt: new Date().toISOString() });
+});
+
+// 본인 진행 정보인지, 아직 수정 가능한 상태인지 공통 확인
+async function loadEditableEnrollment(req, res) {
+  const { rows } = await db.query('SELECT * FROM enrollments WHERE id = $1', [req.params.enrollmentId]);
+  if (rows.length === 0) {
+    res.status(404).json({ error: '진행 정보를 찾을 수 없습니다.' });
+    return null;
+  }
+  const e = rows[0];
+  if (e.student_id !== req.student.studentId) {
+    res.status(403).json({ error: '본인의 진행 정보만 수정할 수 있습니다.' });
+    return null;
+  }
+  if (await isReviewOnly(e.project_id)) {
+    res.status(423).json({ error: REVIEW_ONLY_ERROR });
+    return null;
+  }
+  if (e.submitted_at) {
+    res.status(409).json({ error: '이미 제출을 완료하여 바꿀 수 없습니다.' });
+    return null;
+  }
+  return e;
+}
+
+// ---------- 주제 고정 (2단계 → 3단계로 넘어갈 때) ----------
+router.post('/enrollments/:enrollmentId/lock-track', requireStudent, async (req, res) => {
+  const e = await loadEditableEnrollment(req, res);
+  if (!e) return;
+  if (!e.track_id) return res.status(400).json({ error: '먼저 주제를 선택해 주세요.' });
+  const { rows } = await db.query('UPDATE enrollments SET track_locked = true WHERE id = $1 RETURNING *', [e.id]);
+  res.json(rows[0]);
+});
+
+// ---------- 주제 변경 (최종 제출 전까지 언제든) ----------
+// 학생 화면에서는 작성 내용이 모두 지워지지만, 서버는 '변경 전 기록'으로 옮겨 보관한다(교사만 열람·복구).
+router.post('/enrollments/:enrollmentId/change-track', requireStudent, async (req, res) => {
+  const e = await loadEditableEnrollment(req, res);
+  if (!e) return;
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: current } = await client.query(
+      `SELECT s.step_key, r.answer FROM responses r JOIN steps s ON s.id = r.step_id
+       WHERE r.enrollment_id = $1`,
+      [e.id]
+    );
+    if (current.length > 0) {
+      const answers = Object.fromEntries(current.map((r) => [r.step_key, r.answer]));
+      await client.query(
+        `INSERT INTO response_archives (enrollment_id, track_id, answers, reason) VALUES ($1, $2, $3, 'track_change')`,
+        [e.id, e.track_id, JSON.stringify(answers)]
+      );
+      await client.query('DELETE FROM responses WHERE enrollment_id = $1', [e.id]);
+    }
+    const { rows } = await client.query(
+      'UPDATE enrollments SET track_id = NULL, track_locked = false WHERE id = $1 RETURNING *',
+      [e.id]
+    );
+    await client.query('COMMIT');
+    res.json(rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 // ---------- 최종 제출 ----------

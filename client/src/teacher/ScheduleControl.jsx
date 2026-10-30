@@ -25,7 +25,32 @@ const REAL_SCHEDULE = [
   { className: '2학년 3반', sessionNo: 2, startsAt: toKST('2026-09-23T14:45'), endsAt: toKST('2026-09-23T15:45') },
 ];
 
-export default function ScheduleControl({ token, projectId }) {
+// 조례 수행평가(11월) 운영 시간표 — 종 치는 시각 ±5분
+// 1반: 11/12(목) 5교시, 11/17(화) 4교시 / 2반: 11/13(금) 3교시, 11/16(월) 2교시 / 3반: 11/12(목) 4교시, 11/16(월) 4교시
+const ORDINANCE_SCHEDULE = [
+  { className: '2학년 1반', sessionNo: 1, startsAt: toKST('2026-11-12T13:45'), endsAt: toKST('2026-11-12T14:45') },
+  { className: '2학년 1반', sessionNo: 2, startsAt: toKST('2026-11-17T11:45'), endsAt: toKST('2026-11-17T12:45') },
+  { className: '2학년 2반', sessionNo: 1, startsAt: toKST('2026-11-13T10:45'), endsAt: toKST('2026-11-13T11:45') },
+  { className: '2학년 2반', sessionNo: 2, startsAt: toKST('2026-11-16T09:45'), endsAt: toKST('2026-11-16T10:45') },
+  { className: '2학년 3반', sessionNo: 1, startsAt: toKST('2026-11-12T11:45'), endsAt: toKST('2026-11-12T12:45') },
+  { className: '2학년 3반', sessionNo: 2, startsAt: toKST('2026-11-16T11:45'), endsAt: toKST('2026-11-16T12:45') },
+];
+
+const SCHEDULE_BY_PROJECT = {
+  tourism: {
+    rows: REAL_SCHEDULE,
+    title: '9월 21~23일 실제 운영 시간표 (종 치는 시각 ±5분 버퍼 적용)',
+    sessionLabels: ['1교시(STEP0~6)', '2교시(STEP7~9)'],
+  },
+  ordinance: {
+    rows: ORDINANCE_SCHEDULE,
+    title: '11월 12~17일 조례 수행평가 시간표 (종 치는 시각 ±5분 버퍼 적용)',
+    sessionLabels: ['1차시(주제 선택·자료 읽기)', '2차시(3~8단계·제출)'],
+  },
+};
+
+export default function ScheduleControl({ token, projectId, projectCode = 'tourism' }) {
+  const preset = SCHEDULE_BY_PROJECT[projectCode] || SCHEDULE_BY_PROJECT.tourism;
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +103,7 @@ export default function ScheduleControl({ token, projectId }) {
   };
 
   const bulkFill = async () => {
-    const missing = REAL_SCHEDULE.filter((s) => !findClassId(s.className));
+    const missing = preset.rows.filter((s) => !findClassId(s.className));
     if (missing.length > 0) {
       setError(
         `다음 반을 찾을 수 없습니다: ${[...new Set(missing.map((m) => m.className))].join(', ')}. 먼저 학생 명단을 업로드해주세요.`
@@ -87,7 +112,7 @@ export default function ScheduleControl({ token, projectId }) {
     }
     setError('');
     setBulkStatus('등록 중...');
-    for (const s of REAL_SCHEDULE) {
+    for (const s of preset.rows) {
       await teacherApi.putSchedule(token, projectId, {
         classId: findClassId(s.className),
         sessionNo: s.sessionNo,
@@ -96,7 +121,7 @@ export default function ScheduleControl({ token, projectId }) {
       });
     }
     await load(); // 화면 목록이 실제로 갱신된 뒤에 완료 메시지를 띄운다 (그 반대 순서면 "완료"가 먼저 뜨고 목록이 잠깐 안 맞는 순간이 생김)
-    setBulkStatus('실제 운영 시간표 6건 등록 완료');
+    setBulkStatus(`운영 시간표 ${preset.rows.length}건 등록 완료`);
   };
 
   if (loading) return <p style={{ padding: 20 }}>불러오는 중...</p>;
@@ -120,7 +145,7 @@ export default function ScheduleControl({ token, projectId }) {
         }}
       >
         <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 8px' }}>
-          9월 21~23일 실제 운영 시간표 (종 치는 시각 ±5분 버퍼 적용)
+          {preset.title}
         </p>
         <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: '0 0 10px' }}>
           ※ 반 이름으로 실제 ID를 그때그때 찾으므로, 학생 명단 업로드 순서와 무관하게 안전합니다.
@@ -137,7 +162,7 @@ export default function ScheduleControl({ token, projectId }) {
             fontWeight: 500,
           }}
         >
-          실제 시간표 6건 한 번에 등록
+          시간표 {preset.rows.length}건 한 번에 등록
         </button>
         {bulkStatus && (
           <p style={{ fontSize: 12, color: 'var(--color-teal)', marginTop: 8 }}>{bulkStatus}</p>
@@ -162,7 +187,7 @@ export default function ScheduleControl({ token, projectId }) {
           >
             <div>
               <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: 'var(--color-navy)' }}>
-                {s.class_name} · {s.session_no}교시
+                {s.class_name} · {s.session_no}{projectCode === 'ordinance' ? '차시' : '교시'}
               </p>
               <p style={{ margin: '4px 0 0', fontSize: 12.5, color: 'var(--color-text-muted)' }}>
                 예약: {new Date(s.starts_at).toLocaleString('ko-KR')} ~{' '}
@@ -228,8 +253,8 @@ export default function ScheduleControl({ token, projectId }) {
             onChange={(e) => setForm({ ...form, sessionNo: e.target.value })}
             style={{ padding: 8, border: '1px solid var(--color-border)', borderRadius: 6 }}
           >
-            <option value="1">1교시(STEP0~6)</option>
-            <option value="2">2교시(STEP7~9)</option>
+            <option value="1">{preset.sessionLabels[0]}</option>
+            <option value="2">{preset.sessionLabels[1]}</option>
           </select>
         </div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
