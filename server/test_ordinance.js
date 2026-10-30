@@ -159,6 +159,18 @@ async function main() {
   r = await request.put(`/api/student/enrollments/${enr.id}/responses/${stepId.o3}`).set(auth(t1)).send({ answer: {}, trackId: noise.id });
   check('제출 후 저장 불가(409)', r.status === 409);
 
+  // 교사 제출 취소 → 다시 고치고 재제출
+  r = await request.post(`/api/teacher/enrollments/${enr.id}/unsubmit`).set(auth(t1));
+  check('학생 토큰으로 제출 취소 불가(401)', r.status === 401);
+  r = await request.post(`/api/teacher/enrollments/${enr.id}/unsubmit`).set(auth(tt));
+  check('교사: 제출 취소', r.status === 200 && r.body.submitted_at === null);
+  const g = (await db.query('SELECT COUNT(*)::int AS n FROM grades WHERE enrollment_id=$1', [enr.id])).rows[0].n;
+  check('제출 취소해도 점수는 그대로', g === 1);
+  r = await request.put(`/api/student/enrollments/${enr.id}/responses/${stepId.o3}`).set(auth(t1)).send({ answer: { q1: '다시 고침' }, trackId: noise.id });
+  check('제출 취소 후 다시 저장 가능', r.status === 200);
+  r = await request.post(`/api/student/enrollments/${enr.id}/submit`).set(auth(t1));
+  check('다시 제출 가능', r.status === 200);
+
   // 열람 모드
   await db.query('UPDATE projects SET review_only = true WHERE id=$1', [pid]);
   await db.query('DELETE FROM class_schedules');

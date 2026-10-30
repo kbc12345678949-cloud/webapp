@@ -44,11 +44,17 @@ export async function fetchStakeholders(token, projectId, trackId) {
 }
 
 export async function saveResponse(token, enrollmentId, stepId, answer, extra = {}) {
-  const res = await fetch(`${BASE_URL}/api/student/enrollments/${enrollmentId}/responses/${stepId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ answer, ...extra }),
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}/api/student/enrollments/${enrollmentId}/responses/${stepId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ answer, ...extra }),
+    });
+  } catch {
+    // 와이파이가 잠깐 끊긴 경우 등: 브라우저 영어 오류 대신 한국어로 안내
+    throw new Error('인터넷 연결이 끊겨 저장하지 못했어요. 연결을 확인해 주세요.');
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.error || `저장 실패 (${res.status})`);

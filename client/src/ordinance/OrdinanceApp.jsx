@@ -187,6 +187,8 @@ export default function OrdinanceApp() {
   const [flagged, setFlagged] = useState(() => new Set());
   const [focusTarget, setFocusTarget] = useState(null); // { fieldId, nonce }
   const [saveState, setSaveState] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [retryNeeded, setRetryNeeded] = useState(false);
 
   const isTestClass = student?.className === '테스트반';
   const enrollment = session?.enrollment;
@@ -223,12 +225,10 @@ export default function OrdinanceApp() {
       return true;
     } catch (err) {
       if (ctxRef.current !== ctx) return true; // 주제를 바꾼 직후 예전 저장 요청이 거절된 경우: 무시
+      // 관광정책과 같은 방식: 위쪽 저장 표시에 '저장 실패: 이유'를 띄우고, 다음 저장이 성공하면 사라진다.
       setSaveState('error');
-      if (err.code === 'TRACK_MISMATCH') {
-        setMessage('다른 화면(창)에서 주제가 바뀌었어요. 새로고침(F5)한 뒤 다시 로그인해 주세요.');
-      } else {
-        setMessage(`저장하지 못했어요: ${err.message}`);
-      }
+      setSaveError(err.message);
+      setRetryNeeded(!err.status); // 인터넷이 끊긴 경우만 잠시 뒤 자동으로 다시 저장
       return false;
     }
   }, []);
@@ -239,6 +239,13 @@ export default function OrdinanceApp() {
     timer.current = setTimeout(flush, 800);
     return () => clearTimeout(timer.current);
   }, [answers, flush]);
+
+  // 인터넷이 잠깐 끊겨 저장에 실패하면 5초마다 다시 시도한다(성공하면 '저장 실패' 표시가 사라짐)
+  useEffect(() => {
+    if (saveState !== 'error' || !retryNeeded) return;
+    const t = setTimeout(() => flush(), 5000);
+    return () => clearTimeout(t);
+  }, [saveState, retryNeeded, saveError, flush]);
 
   // 휴대폰에서 다른 앱으로 넘어가거나 창을 닫을 때도 바로 저장
   useEffect(() => {
@@ -421,7 +428,10 @@ export default function OrdinanceApp() {
   const trySubmit = async () => {
     setMessage('');
     const ok = await flush();
-    if (!ok) return;
+    if (!ok) {
+      setMessage('답안을 저장하지 못해 제출하지 않았어요. 인터넷 연결을 확인하고 다시 눌러 주세요.');
+      return;
+    }
     const now = collectIssues(answersRef.current);
     if (now.length > 0) {
       setFlagged(new Set(now.map((i) => i.fieldId)));
@@ -438,6 +448,7 @@ export default function OrdinanceApp() {
       const ok = await flush();
       if (!ok) {
         setModal(null);
+        setMessage('답안을 저장하지 못해 제출하지 않았어요. 인터넷 연결을 확인하고 다시 눌러 주세요.');
         return;
       }
       const updated = await submitFinal(student.token, enrollment.id);
@@ -704,7 +715,7 @@ export default function OrdinanceApp() {
       )}
 
       <StageNav current={onCheck ? 9 : stageNo} issues={issues} onGo={goStage} />
-      <Toolbar onOpen={setSheet} saveState={saveState} />
+      <Toolbar onOpen={setSheet} saveState={saveState} saveError={saveError} />
 
       <div style={{ padding: '6px 18px 40px' }}>
         {message && <ErrorLine text={message} />}
@@ -982,7 +993,7 @@ function StageNav({ current, issues, onGo }) {
   );
 }
 
-function Toolbar({ onOpen, saveState }) {
+function Toolbar({ onOpen, saveState, saveError }) {
   const btn = {
     background: '#FFFFFF',
     border: '1px solid var(--color-border)',
@@ -1005,7 +1016,7 @@ function Toolbar({ onOpen, saveState }) {
       <span style={{ marginLeft: 'auto', fontSize: 11, color: saveState === 'error' ? 'var(--color-coral)' : 'var(--color-text-muted)' }}>
         {saveState === 'saving' && '저장 중...'}
         {saveState === 'saved' && '✓ 자동 저장됨'}
-        {saveState === 'error' && '저장 실패'}
+        {saveState === 'error' && `저장 실패: ${saveError}`}
       </span>
     </div>
   );
@@ -1052,7 +1063,7 @@ const textareaStyle = (bad) => ({
   border: `${bad ? 2 : 1}px solid ${bad ? 'var(--color-coral)' : 'var(--color-border)'}`,
   borderRadius: 8,
   padding: 10,
-  fontSize: 14,
+  fontSize: 16, // 아이폰은 16px보다 작은 입력칸을 누르면 화면을 확대하므로 16px로 맞춘다
   lineHeight: 1.6,
   fontFamily: 'var(--font-family)',
   resize: 'vertical',

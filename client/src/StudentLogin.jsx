@@ -116,7 +116,7 @@ export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀
             marginBottom: 16,
             border: '1px solid var(--color-border)',
             borderRadius: 8,
-            fontSize: 14,
+            fontSize: 16, // 아이폰 자동 확대 방지(16px 미만이면 확대됨)
             fontFamily: 'var(--font-family)',
             background: 'var(--color-card)',
           }}
@@ -142,7 +142,7 @@ export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀
             marginBottom: 16,
             border: '1px solid var(--color-border)',
             borderRadius: 8,
-            fontSize: 14,
+            fontSize: 16, // 아이폰 자동 확대 방지(16px 미만이면 확대됨)
             fontFamily: 'var(--font-family)',
           }}
         />

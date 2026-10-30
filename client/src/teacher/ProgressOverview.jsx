@@ -86,6 +86,21 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
     setResponses(data);
   };
 
+  // 제출 취소(다시 열어 주기): 답안·점수는 그대로, '제출 완료'만 지운다
+  const unsubmit = async (student) => {
+    const ok = window.confirm(
+      `${student.student_no} ${student.name} 학생의 제출을 취소할까요?\n\n답안과 점수는 그대로 남고, 학생이 응시 시간에 다시 로그인하면 이어서 고친 뒤 다시 제출할 수 있어요.`
+    );
+    if (!ok) return;
+    try {
+      await teacherApi.unsubmit(token, student.enrollment_id);
+      await load();
+      if (selected?.student_id === student.student_id) setSelected({ ...selected, submitted_at: null });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // 되돌리기 후: 목록(주제·진행 단계)과 답안을 새로 불러온다
   const refreshAfterRestore = async () => {
     if (!classId || !selected) return;
@@ -186,6 +201,23 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
                 <td style={{ padding: 8 }}>{isOrdinance ? `${s.steps_done} / 6` : `${s.steps_done}개`}</td>
                 <td style={{ padding: 8, color: s.submitted_at ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
                   {s.submitted_at ? '제출 완료' : '미제출'}
+                  {isOrdinance && s.submitted_at && (
+                    <button
+                      onClick={() => unsubmit(s)}
+                      style={{
+                        display: 'block',
+                        marginTop: 4,
+                        background: 'transparent',
+                        border: '1px solid var(--color-coral)',
+                        color: 'var(--color-coral)',
+                        borderRadius: 6,
+                        padding: '2px 8px',
+                        fontSize: 11,
+                      }}
+                    >
+                      제출 취소
+                    </button>
+                  )}
                 </td>
                 <td style={{ padding: 8 }}>
                   <button

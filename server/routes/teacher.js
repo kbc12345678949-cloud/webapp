@@ -178,6 +178,18 @@ router.get('/distribution/:projectId/:stepKey', requireTeacher, async (req, res)
   res.json({ stepKey, total, distribution: rows, note: '지금까지 제출한 인원 기준' });
 });
 
+// ---------- 제출 취소(다시 열어 주기) ----------
+// 실수로 제출한 학생이나 테스트반 반복 점검용. 답안·점수는 그대로 두고 '제출 완료' 표시만 지운다.
+// 학생은 다음에 로그인(응시 시간 안)하면 이어서 고치고 다시 제출할 수 있다.
+router.post('/enrollments/:enrollmentId/unsubmit', requireTeacher, async (req, res) => {
+  const { rows } = await db.query(
+    'UPDATE enrollments SET submitted_at = NULL WHERE id = $1 RETURNING *',
+    [req.params.enrollmentId]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: '진행 정보를 찾을 수 없습니다.' });
+  res.json(rows[0]);
+});
+
 // ---------- 주제(트랙) 선택 분포 (조례) ----------
 router.get('/track-distribution/:projectId', requireTeacher, async (req, res) => {
   const { projectId } = req.params;
