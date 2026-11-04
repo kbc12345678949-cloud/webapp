@@ -252,7 +252,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
             }}
           >
             <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 10px' }}>
-              {selected.name} 학생의 답안
+              {selected.name} 학생의 {isOrdinance ? '답안과 채점' : '답안'}
             </p>
             {!selected.enrollment_id && (
               <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>아직 시작하지 않았습니다.</p>
@@ -261,6 +261,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
               <OrdinanceAnswerView
                 key={selected.enrollment_id}
                 token={token}
+                projectId={projectId}
                 student={selected}
                 responses={responses}
                 onRestored={refreshAfterRestore}
@@ -287,7 +288,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
               ))}
           </div>
 
-          {selected.enrollment_id && (
+          {!isOrdinance && selected.enrollment_id && (
             <div style={{ flex: 1, minWidth: 280 }}>
               <GradingPanel
                 token={token}

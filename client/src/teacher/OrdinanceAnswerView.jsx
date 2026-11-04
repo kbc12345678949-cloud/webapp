@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { teacherApi } from './api';
 import { findTrack, STAGE_KEYS } from '../ordinance/content';
 import { AnswerSummary } from '../ordinance/ui';
+import OrdinanceGrading from './OrdinanceGrading';
 
 const REASON_LABEL = {
   track_change: '학생이 주제를 바꾸기 전 기록',
@@ -22,7 +23,7 @@ function toAnswers(responses) {
   return a;
 }
 
-export default function OrdinanceAnswerView({ token, student, responses, onRestored }) {
+export default function OrdinanceAnswerView({ token, projectId, student, responses, onRestored }) {
   const [archives, setArchives] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -71,7 +72,15 @@ export default function OrdinanceAnswerView({ token, student, responses, onResto
       {responses && responses.length === 0 && (
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>아직 작성한 답안이 없습니다.</p>
       )}
-      {responses && responses.length > 0 && <AnswerSummary track={track} answers={toAnswers(responses)} />}
+      {responses && (
+        <OrdinanceGrading
+          token={token}
+          projectId={projectId}
+          enrollmentId={student.enrollment_id}
+          track={track}
+          answers={toAnswers(responses)}
+        />
+      )}
 
       {msg && <p style={{ fontSize: 12.5, color: 'var(--color-teal)' }}>{msg}</p>}
 

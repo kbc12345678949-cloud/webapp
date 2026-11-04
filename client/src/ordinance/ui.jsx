@@ -148,7 +148,25 @@ export function MaterialBody({ track, mkey }) {
       </div>
     );
   }
-  return <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.7, color: 'var(--color-text)' }}>{m.text}</p>;
+  const text = <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.7, color: 'var(--color-text)' }}>{m.text}</p>;
+  if (mkey !== 'm5' || !track.moreLaws) return text;
+  return (
+    <div>
+      {text}
+      <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--color-bg)', borderRadius: 8 }}>
+        <p style={{ margin: '0 0 4px', fontSize: 12.5, fontWeight: 600, color: 'var(--color-teal)' }}>
+          🔎 더 찾아보면 좋은 법률
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18 }}>
+          {track.moreLaws.map(([name, why]) => (
+            <li key={name} style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--color-text-body)' }}>
+              <b>「{name}」</b> — {why}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
 export function MaterialCard({ track, mkey, defaultOpen = true }) {
@@ -343,13 +361,13 @@ export function AnswerSummary({ track, answers, issuesByQuestion, onEdit }) {
   );
 }
 
-function AnswerText({ text }) {
+export function AnswerText({ text }) {
   const t = String(text || '').trim();
   if (!t) return <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>(아직 쓰지 않았어요)</p>;
   return <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.7, color: 'var(--color-text)', whiteSpace: 'pre-wrap' }}>{t}</p>;
 }
 
-function EvidenceAnswer({ track, answer }) {
+export function EvidenceAnswer({ track, answer }) {
   const checked = MATERIAL_KEYS.filter((k) => (answer?.checked || []).includes(k));
   if (checked.length === 0) {
     return <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>(체크한 자료가 없어요)</p>;
