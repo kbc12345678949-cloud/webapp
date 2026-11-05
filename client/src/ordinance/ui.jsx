@@ -149,22 +149,71 @@ export function MaterialBody({ track, mkey }) {
     );
   }
   const text = <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.7, color: 'var(--color-text)' }}>{m.text}</p>;
-  if (mkey !== 'm5' || !track.moreLaws) return text;
+  if (mkey !== 'm5') return text;
+  const focus = track.lawFocus;
   return (
     <div>
       {text}
-      <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--color-bg)', borderRadius: 8 }}>
-        <p style={{ margin: '0 0 4px', fontSize: 12.5, fontWeight: 600, color: 'var(--color-teal)' }}>
-          🔎 더 찾아보면 좋은 법률
-        </p>
-        <ul style={{ margin: 0, paddingLeft: 18 }}>
-          {track.moreLaws.map(([name, why]) => (
-            <li key={name} style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--color-text-body)' }}>
-              <b>「{name}」</b> — {why}
-            </li>
+      {focus && (
+        <div style={{ marginTop: 10, padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: 8 }}>
+          <p style={{ margin: '0 0 4px', fontSize: 12.5, fontWeight: 600, color: 'var(--color-navy)' }}>
+            ⚖️ 특히 볼 조항 · 「{focus.law || track.lawName}」 {focus.article}
+          </p>
+          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.65, color: 'var(--color-text-body)' }}>{focus.desc}</p>
+          <LawCases cases={focus.cases} />
+        </div>
+      )}
+      {track.moreLaws && (
+        <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--color-bg)', borderRadius: 8 }}>
+          <p style={{ margin: '0 0 6px', fontSize: 12.5, fontWeight: 600, color: 'var(--color-teal)' }}>
+            🔎 더 찾아보면 좋은 법률
+          </p>
+          {track.moreLaws.map((law, i) => (
+            <div
+              key={law.name}
+              style={{ paddingTop: i === 0 ? 0 : 8, marginTop: i === 0 ? 0 : 8, borderTop: i === 0 ? 'none' : '1px dashed var(--color-border)' }}
+            >
+              <p style={{ margin: '0 0 2px', fontSize: 12.5, color: 'var(--color-navy)', lineHeight: 1.5 }}>
+                <b>「{law.name}」</b>
+                {law.article && <span> {law.article}</span>}
+              </p>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.65, color: 'var(--color-text-body)' }}>{law.desc}</p>
+              <LawCases cases={law.cases} />
+            </div>
           ))}
-        </ul>
-      </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// [📌 실제 사례 보기]를 눌러야 '실제로는 / 생각해 볼 점'이 펼쳐진다(휴대폰에서 자료 5가 너무 길어지지 않게).
+function LawCases({ cases }) {
+  const [open, setOpen] = useState(false);
+  if (!cases || cases.length === 0) return null;
+  return (
+    <div style={{ marginTop: 6 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          background: '#FFFFFF',
+          border: '1px solid var(--color-teal)',
+          color: 'var(--color-teal)',
+          borderRadius: 999,
+          padding: '3px 10px',
+          fontSize: 12,
+        }}
+      >
+        {open ? '📌 실제 사례 접기 ▲' : '📌 실제 사례 보기 ▼'}
+      </button>
+      {open &&
+        cases.map((c, i) => (
+          <p key={i} style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.65, color: 'var(--color-text-body)' }}>
+            <b style={{ color: c.label === '생각해 볼 점' ? 'var(--color-coral)' : 'var(--color-teal)' }}>{c.label}: </b>
+            {c.text}
+          </p>
+        ))}
     </div>
   );
 }
@@ -264,7 +313,7 @@ export function QuestionList({ track }) {
                 {q.prompt}
               </p>
               <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--color-text-muted)' }}>
-                {q.type === 'evidence' ? `자료 1개 이상 체크 + 체크한 자료마다 ${q.min}자 이상` : `${q.min}자 이상`}
+                {q.type === 'evidence' ? `자료 1개 이상 체크 + 체크한 자료마다 ${q.min}자 이상` : q.optional ? '선택 응답 · 글자 수 기준 없음' : `${q.min}자 이상`}
                 {q.unscored && ' · 점수에 들어가지 않는 문항'}
                 {q.showLaw && track && ` · 이 주제의 관련 상위법: ${track.lawName}`}
               </p>

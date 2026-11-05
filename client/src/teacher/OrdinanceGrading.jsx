@@ -161,7 +161,7 @@ export default function OrdinanceGrading({ token, projectId, enrollmentId, track
   if (!items) return <p style={{ fontSize: 13, color: 'var(--color-text-body)' }}>불러오는 중...</p>;
 
   const graded = items.filter((i) => i.score !== null && i.score !== undefined).length;
-  const local = QUESTION_INDEX['8-3'];
+  const local = QUESTION_INDEX['8-2'];
 
   return (
     <div>
@@ -197,9 +197,9 @@ export default function OrdinanceGrading({ token, projectId, enrollmentId, track
           }}
         >
           <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)' }}>
-            참고 (채점 제외) · 8-3 우리 지역 연결
+            참고 (채점 제외) · 8-2 우리 지역 연결
           </p>
-          <QuestionBlock qid="8-3" track={track} answers={answers} />
+          <QuestionBlock qid="8-2" track={track} answers={answers} />
         </div>
       )}
     </div>

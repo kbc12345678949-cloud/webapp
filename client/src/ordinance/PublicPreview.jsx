@@ -14,7 +14,7 @@ export default function PublicPreview({ mode, onBack }) {
       <ProgressHeader projectLabel={PROJECT_LABEL} currentStep={0} totalSteps={TOTAL_STEPS} />
       <div style={{ padding: '18px 18px 40px' }}>
         <button onClick={track ? () => setTrack(null) : onBack} style={{ ...linkButton, marginBottom: 12 }}>
-          ← {track ? '다른 주제 고르기' : '로그인 화면으로'}
+          ← {track ? '다른 주제 선택하기' : '로그인 화면으로'}
         </button>
 
         <h3 style={{ color: 'var(--color-navy)', fontSize: 18, fontWeight: 600, margin: '0 0 4px' }}>
@@ -55,7 +55,7 @@ export default function PublicPreview({ mode, onBack }) {
               <QuestionList track={track} />
             )}
             <button onClick={() => setTrack(null)} style={{ ...secondaryButton, marginTop: 10 }}>
-              다른 주제 보기
+              다른 주제 선택하기
             </button>
           </>
         )}

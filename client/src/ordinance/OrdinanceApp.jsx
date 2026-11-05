@@ -1,6 +1,6 @@
 // src/ordinance/OrdinanceApp.jsx
 // '생활 속 문제, 조례로 답하다' 학생 화면 (주소: /ordinance)
-// 흐름: 로그인 → 시작 안내(전체 질문 미리 보기) → 1 주제 선택 → 2 배경 자료(→ 주제 고정) → 3~8단계(자유 이동)
+// 흐름: 로그인 → 시작 안내(전체 질문 미리 보기) → 1 주제 선택 → 2 배경 자료(→ 주제 고정) → 3~8단계(자유 이동) → 9 내 답안 전체 확인
 //       → 내 답안 전체 확인 → 최종 제출(부족한 문항이 있으면 목록 안내) → 제출 완료
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import StudentLogin from '../StudentLogin';
@@ -574,9 +574,12 @@ export default function OrdinanceApp() {
           <div style={{ ...cardStyle, marginBottom: 14 }}>
             <p style={{ margin: '0 0 8px', fontSize: 13.5, fontWeight: 600, color: 'var(--color-navy)' }}>진행 방법</p>
             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.75, color: 'var(--color-text-body)' }}>
-              <li>1차시: 주제를 고르고 자료를 꼼꼼히 읽어요. (여유가 있으면 3단계 시작)</li>
+              <li>1차시: 주제를 고르고 자료를 꼼꼼히 읽어요. (여유가 있으면 이후 단계도 진행하세요)</li>
               <li>2차시: 3~8단계 질문에 답하고, 내 답안을 확인한 뒤 최종 제출해요.</li>
-              <li>쓰는 내용은 자동으로 저장돼요. 다음 시간에 로그인하면 이어서 쓸 수 있어요.</li>
+              <li>쓰는 내용은 자동으로 저장돼요. 다음 시간에 다른 기기로 로그인해도 이어서 쓸 수 있어요.</li>
+              <li style={{ color: 'var(--color-coral)', fontWeight: 500 }}>
+                ⚠️ 한 번에 한 기기에서만 쓰세요. 두 기기에서 동시에 쓰면 한쪽에 쓴 내용이 지워질 수 있어요.
+              </li>
               <li>3~8단계는 글자 수와 상관없이 자유롭게 앞뒤로 이동할 수 있어요.</li>
               <li>최종 제출할 때 모든 문항의 최소 글자 수를 채웠는지 확인해요.</li>
             </ul>
@@ -647,13 +650,13 @@ export default function OrdinanceApp() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
             <TrackBadge track={track} inline />
             {!locked && (
-              <button onClick={() => setScreen('track')} style={linkButton}>
-                ← 주제 다시 고르기
+              <button onClick={() => setScreen('track')} style={{ ...linkButton, marginLeft: 16 }}>
+                다른 주제 선택하기
               </button>
             )}
           </div>
           <p style={{ fontSize: 13, color: 'var(--color-text-body)', lineHeight: 1.6, margin: '0 0 12px' }}>
-            자료 5종을 하나씩 눌러 읽어 보세요. 3단계부터는 이 자료를 근거로 답을 써요.
+            자료 5종을 하나씩 눌러서 펼친 상태로 읽어 보세요. 3단계부터는 이 자료를 근거로 답을 써요.
           </p>
           {message && <ErrorLine text={message} />}
           <MaterialsAccordion
@@ -774,9 +777,7 @@ export default function OrdinanceApp() {
 
         {onCheck && (
           <>
-            <h3 style={{ color: 'var(--color-navy)', fontSize: 18, fontWeight: 600, margin: '8px 0 6px' }}>
-              내 답안 전체 확인
-            </h3>
+            <StageTitle no={9} title="내 답안 전체 확인" />
             <p style={{ fontSize: 13, color: 'var(--color-text-body)', lineHeight: 1.6, margin: '0 0 14px' }}>
               제출 전에 내가 쓴 답을 한 번에 확인하세요. <b style={{ color: 'var(--color-coral)' }}>부족</b> 표시가 있는 문항은
               [수정하기]를 눌러 고칠 수 있어요.
@@ -1073,6 +1074,9 @@ const textareaStyle = (bad) => ({
 
 function Counter({ text, min }) {
   const len = countChars(text);
+  if (!min) {
+    return <div style={{ marginTop: 5, fontSize: 12, color: 'var(--color-text-muted)' }}>{len}자 · 글자 수 기준 없음</div>;
+  }
   const abuse = len >= min && hasRepeatedCharacterAbuse(text);
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 12 }}>
@@ -1088,7 +1092,7 @@ function TextQuestion({ q, track, value, onChange, flagged, focusTarget }) {
   const ref = useRef(null);
   const [showLaw, setShowLaw] = useState(false);
   useFocus(ref, q.id, focusTarget);
-  const bad = flagged && !!textIssue(value, q.min);
+  const bad = flagged && !q.optional && !!textIssue(value, q.min);
   return (
     <div style={{ ...cardStyle, marginBottom: 14 }}>
       {q.notice && (

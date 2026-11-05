@@ -50,6 +50,7 @@ export function collectIssues(answers) {
           issues.push({ stage: stage.no, questionId: q.id, fieldId: it.fieldId, label, reason: it.reason });
         }
       } else {
+        if (q.optional) continue; // 선택 응답 문항(8-2)은 부족 표시를 하지 않는다
         const reason = textIssue(a[q.field], q.min);
         if (reason) issues.push({ stage: stage.no, questionId: q.id, fieldId: q.id, label, reason });
       }

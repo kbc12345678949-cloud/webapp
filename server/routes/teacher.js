@@ -553,7 +553,7 @@ async function exportOrdinanceAnswers(req, res) {
     '5-1 반대자와 이유', '5-2 절충안',
     '6-1 근거 자료', '6-1 자료별 설명',
     '7-1 정치 과정·시민 역할', '7-2 왜 조례인가',
-    '8-1 고민', '8-2 해결 여부', '8-3 우리 지역(채점 제외)',
+    '8-1 어려움과 해결 여부', '8-2 우리 지역(채점 제외)',
   ];
   const lines = [header.map(esc).join(',')];
   for (const s of students.rows) {
@@ -572,7 +572,7 @@ async function exportOrdinanceAnswers(req, res) {
       checked.map((k) => ORDINANCE_MATERIAL_LABEL[k] || k).join(', '),
       checked.map((k) => `[${ORDINANCE_MATERIAL_LABEL[k] || k}] ${(o6.reasons || {})[k] || ''}`).join('\n'),
       o7.q1, o7.q2,
-      o8.q1, o8.q2, o8.q3,
+      o8.q1, o8.q2,
     ];
     lines.push(row.map(esc).join(','));
   }
