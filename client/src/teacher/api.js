@@ -52,6 +52,7 @@ export const teacherApi = {
   getTrackDistribution: (token, projectId, classId) =>
     request(`/api/teacher/track-distribution/${projectId}${classId ? `?classId=${classId}` : ''}`, { token }),
   unsubmit: (token, enrollmentId) => request(`/api/teacher/enrollments/${enrollmentId}/unsubmit`, { method: 'POST', token }),
+  forceSubmit: (token, enrollmentId) => request(`/api/teacher/enrollments/${enrollmentId}/force-submit`, { method: 'POST', token }),
   getArchives: (token, enrollmentId) => request(`/api/teacher/archives/${enrollmentId}`, { token }),
   restoreArchive: (token, archiveId) => request(`/api/teacher/archives/${archiveId}/restore`, { method: 'POST', token }),
   getProgress: (token, projectId, classId) => request(`/api/teacher/progress/${projectId}/${classId}`, { token }),

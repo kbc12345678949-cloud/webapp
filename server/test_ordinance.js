@@ -171,6 +171,27 @@ async function main() {
   r = await request.post(`/api/student/enrollments/${enr.id}/submit`).set(auth(t1));
   check('다시 제출 가능', r.status === 200);
 
+  // 교사 제출 처리(마감) → 학생 저장 불가 → 제출 취소로 되돌리기
+  r = await request.post(`/api/teacher/enrollments/${enr.id}/force-submit`).set(auth(tt));
+  check('이미 제출한 학생은 제출 처리 불가(409)', r.status === 409);
+  await request.post(`/api/teacher/enrollments/${enr.id}/unsubmit`).set(auth(tt));
+  r = await request.post(`/api/teacher/enrollments/${enr.id}/force-submit`).set(auth(t1));
+  check('학생 토큰으로 제출 처리 불가(401)', r.status === 401);
+  r = await request.post(`/api/teacher/enrollments/${enr.id}/force-submit`).set(auth(tt));
+  check('교사: 제출 처리', r.status === 200 && r.body.submitted_at && r.body.submitted_by_teacher === true);
+  r = await request.put(`/api/student/enrollments/${enr.id}/responses/${stepId.o3}`).set(auth(t1)).send({ answer: { q1: '몰래 고침' }, trackId: noise.id });
+  check('제출 처리 후 학생 저장 불가(409)', r.status === 409);
+  r = await request.post(`/api/teacher/enrollments/${enr.id}/force-submit`).set(auth(tt));
+  check('제출 처리 두 번 불가(409)', r.status === 409);
+  r = await request.post('/api/teacher/enrollments/999999/force-submit').set(auth(tt));
+  check('없는 학생 제출 처리(404)', r.status === 404);
+  const ex = await request.get(`/api/teacher/export-answers/${pid}/1`).set(auth(tt));
+  check('CSV에 "제출 완료(교사 처리)" 표시', ex.text.includes('제출 완료(교사 처리)'));
+  r = await request.post(`/api/teacher/enrollments/${enr.id}/unsubmit`).set(auth(tt));
+  check('제출 취소하면 교사 처리 표시도 지움', r.body.submitted_by_teacher === false);
+  r = await request.post(`/api/student/enrollments/${enr.id}/submit`).set(auth(t1));
+  check('학생이 다시 직접 제출', r.status === 200 && r.body.submitted_by_teacher === false);
+
   // 열람 모드
   await db.query('UPDATE projects SET review_only = true WHERE id=$1', [pid]);
   await db.query('DELETE FROM class_schedules');

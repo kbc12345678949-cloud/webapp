@@ -324,7 +324,7 @@ router.post('/enrollments/:enrollmentId/submit', requireStudent, async (req, res
     return res.status(409).json({ error: '이미 제출되었습니다.' });
   }
   const updated = await db.query(
-    'UPDATE enrollments SET submitted_at = now() WHERE id = $1 RETURNING *',
+    'UPDATE enrollments SET submitted_at = now(), submitted_by_teacher = false WHERE id = $1 RETURNING *',
     [enrollmentId]
   );
   res.json(updated.rows[0]);

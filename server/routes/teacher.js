@@ -137,14 +137,14 @@ router.get('/progress/:projectId/:classId', requireTeacher, async (req, res) => 
   const { projectId, classId } = req.params;
   const { rows } = await db.query(
     `SELECT st.id AS student_id, st.name, st.student_no, e.id AS enrollment_id, e.submitted_at,
-            e.track_locked, t.title AS track_title, t.code AS track_code,
+            e.submitted_by_teacher, e.track_locked, t.title AS track_title, t.code AS track_code,
             COUNT(r.id) AS steps_done
      FROM students st
      LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
      LEFT JOIN tracks t ON t.id = e.track_id
      LEFT JOIN responses r ON r.enrollment_id = e.id
      WHERE st.class_id = $2
-     GROUP BY st.id, st.name, st.student_no, e.id, e.submitted_at, e.track_locked, t.title, t.code
+     GROUP BY st.id, st.name, st.student_no, e.id, e.submitted_at, e.submitted_by_teacher, e.track_locked, t.title, t.code
      ORDER BY st.student_no`,
     [projectId, classId]
   );
@@ -183,10 +183,28 @@ router.get('/distribution/:projectId/:stepKey', requireTeacher, async (req, res)
 // 학생은 다음에 로그인(응시 시간 안)하면 이어서 고치고 다시 제출할 수 있다.
 router.post('/enrollments/:enrollmentId/unsubmit', requireTeacher, async (req, res) => {
   const { rows } = await db.query(
-    'UPDATE enrollments SET submitted_at = NULL WHERE id = $1 RETURNING *',
+    'UPDATE enrollments SET submitted_at = NULL, submitted_by_teacher = false WHERE id = $1 RETURNING *',
     [req.params.enrollmentId]
   );
   if (rows.length === 0) return res.status(404).json({ error: '진행 정보를 찾을 수 없습니다.' });
+  res.json(rows[0]);
+});
+
+// ---------- 제출 처리(교사가 마감) ----------
+// 응시 시간 안에 최종 제출하지 못한 학생의 '저장된 답안'을 그대로 제출 상태로 잠근다.
+// 최소 글자 수는 따지지 않는다. 이후 보충 응시로 반을 다시 열어도 이 학생은 고칠 수 없다.
+// 잘못 눌렀으면 [제출 취소]로 되돌린다.
+router.post('/enrollments/:enrollmentId/force-submit', requireTeacher, async (req, res) => {
+  const { rows } = await db.query(
+    `UPDATE enrollments SET submitted_at = now(), submitted_by_teacher = true
+     WHERE id = $1 AND submitted_at IS NULL RETURNING *`,
+    [req.params.enrollmentId]
+  );
+  if (rows.length === 0) {
+    const exists = await db.query('SELECT submitted_at FROM enrollments WHERE id = $1', [req.params.enrollmentId]);
+    if (exists.rows.length === 0) return res.status(404).json({ error: '진행 정보를 찾을 수 없습니다.' });
+    return res.status(409).json({ error: '이미 제출된 학생입니다.' });
+  }
   res.json(rows[0]);
 });
 
@@ -507,7 +525,7 @@ const ORDINANCE_MATERIAL_LABEL = {
 async function exportOrdinanceAnswers(req, res) {
   const { projectId, classId } = req.params;
   const students = await db.query(
-    `SELECT st.student_no, st.name, e.id AS enrollment_id, e.submitted_at, t.title AS track_title
+    `SELECT st.student_no, st.name, e.id AS enrollment_id, e.submitted_at, e.submitted_by_teacher, t.title AS track_title
      FROM students st
      LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
      LEFT JOIN tracks t ON t.id = e.track_id
@@ -545,7 +563,7 @@ async function exportOrdinanceAnswers(req, res) {
     const row = [
       s.student_no,
       s.name,
-      s.submitted_at ? '제출 완료' : '미제출',
+      s.submitted_at ? (s.submitted_by_teacher ? '제출 완료(교사 처리)' : '제출 완료') : '미제출',
       formatKST(s.submitted_at),
       s.track_title || '',
       o3.q1, o3.q2, o3.q3,

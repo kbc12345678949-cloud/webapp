@@ -117,6 +117,7 @@ CREATE TABLE enrollments (
   track_id      INTEGER REFERENCES tracks(id),   -- 트랙 확정 시 채움, 확정 전엔 NULL
   track_locked  BOOLEAN NOT NULL DEFAULT false,  -- 트랙 잠금 여부 (서술 첫 입력 시 true)
   submitted_at  TIMESTAMPTZ,                     -- 최종 제출 시각 (NULL이면 미제출)
+  submitted_by_teacher BOOLEAN NOT NULL DEFAULT false, -- 교사가 [제출 처리]로 마감했는지
   UNIQUE (project_id, student_id)
 );
 

@@ -10,6 +10,9 @@ async function ensureSchema(db) {
   // 채점 단계 점수표(조례: A~E 5단계). 없으면 기존 상/중/하 방식으로 채점한다.
   await db.query('ALTER TABLE rubric_items ADD COLUMN IF NOT EXISTS scale JSONB');
 
+  // 교사 [제출 처리]: 시간 안에 제출하지 못한 학생의 저장된 답안을 교사가 제출 상태로 잠근 경우 표시
+  await db.query('ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS submitted_by_teacher BOOLEAN NOT NULL DEFAULT false');
+
   // 주제 변경 전 답안 보관(교사만 열람·복구)
   await db.query(`
     CREATE TABLE IF NOT EXISTS response_archives (

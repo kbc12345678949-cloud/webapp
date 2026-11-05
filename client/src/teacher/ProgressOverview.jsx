@@ -101,6 +101,23 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
     }
   };
 
+  // 제출 처리(교사 마감): 저장된 답안을 그대로 제출 상태로 잠근다
+  const forceSubmit = async (student) => {
+    const ok = window.confirm(
+      `${student.student_no} ${student.name} 학생을 제출 처리할까요?\n\n지금까지 저장된 답안이 그대로 제출 상태로 잠겨요(최소 글자 수는 따지지 않아요). 이후 반을 다시 열어도 이 학생은 고칠 수 없어요.\n잘못 눌렀으면 [제출 취소]로 되돌릴 수 있어요.`
+    );
+    if (!ok) return;
+    try {
+      const updated = await teacherApi.forceSubmit(token, student.enrollment_id);
+      await load();
+      if (selected?.student_id === student.student_id) {
+        setSelected({ ...selected, submitted_at: updated.submitted_at, submitted_by_teacher: true });
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // 되돌리기 후: 목록(주제·진행 단계)과 답안을 새로 불러온다
   const refreshAfterRestore = async () => {
     if (!classId || !selected) return;
@@ -199,8 +216,29 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
                   </td>
                 )}
                 <td style={{ padding: 8 }}>{isOrdinance ? `${s.steps_done} / 6` : `${s.steps_done}개`}</td>
-                <td style={{ padding: 8, color: s.submitted_at ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
+                <td style={{ padding: 8, whiteSpace: 'nowrap', color: s.submitted_at ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
                   {s.submitted_at ? '제출 완료' : '미제출'}
+                  {s.submitted_at && s.submitted_by_teacher && (
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)' }}>(교사 처리)</span>
+                  )}
+                  {isOrdinance && !s.submitted_at && s.enrollment_id && (
+                    <button
+                      onClick={() => forceSubmit(s)}
+                      style={{
+                        display: 'block',
+                        marginTop: 4,
+                        background: 'transparent',
+                        border: '1px solid var(--color-navy)',
+                        color: 'var(--color-navy)',
+                        borderRadius: 6,
+                        padding: '2px 8px',
+                        fontSize: 11,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      제출 처리
+                    </button>
+                  )}
                   {isOrdinance && s.submitted_at && (
                     <button
                       onClick={() => unsubmit(s)}
@@ -213,6 +251,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
                         borderRadius: 6,
                         padding: '2px 8px',
                         fontSize: 11,
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       제출 취소
