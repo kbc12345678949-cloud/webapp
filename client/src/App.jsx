@@ -175,7 +175,13 @@ export default function App() {
 
   return (
     <div>
-      {screen === 'login' && <StudentLogin onLogin={afterLogin} onPreview={() => setScreen('preview')} />}
+      {screen === 'login' && (
+        <StudentLogin
+          onLogin={afterLogin}
+          onPreview={() => setScreen('preview')}
+          crossLink={{ href: '/ordinance', label: '📜 조례 수행평가 하러 가기 →' }}
+        />
+      )}
       {screen === 'preview' && <MaterialsPreview onBack={() => setScreen('login')} />}
       {screen === 'record' && (
         <MyRecord

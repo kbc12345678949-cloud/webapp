@@ -6,7 +6,7 @@ import { studentLogin } from './api';
 const CLASS_OPTIONS = ['2학년 1반', '2학년 2반', '2학년 3반', '테스트반'];
 
 // projectLabel·totalSteps·extraActions는 조례 수행평가처럼 다른 화면에서 재사용할 때만 넘긴다(기본값은 관광정책).
-export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀 브리핑', totalSteps = 9, extraActions = null, topSlot = null }) {
+export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀 브리핑', totalSteps = 9, extraActions = null, topSlot = null, crossLink = null }) {
   const [className, setClassName] = useState(CLASS_OPTIONS[0]);
   const [studentNo, setStudentNo] = useState('');
   const [error, setError] = useState('');
@@ -188,6 +188,29 @@ export default function StudentLogin({ onLogin, onPreview, projectLabel = 'TF팀
         >
           수행평가 전에 자료만 미리 보기 →
         </button>
+        )}
+
+        {/* 다른 수행평가 화면으로 가는 링크 (주소를 잘못 들어왔을 때 바로 이동) */}
+        {crossLink && (
+          <div style={{ marginTop: 26, paddingTop: 16, borderTop: '1px dashed var(--color-border)' }}>
+            <a
+              href={crossLink.href}
+              style={{
+                display: 'block',
+                textAlign: 'center',
+                padding: '12px 10px',
+                borderRadius: 'var(--radius-button)',
+                border: '1.5px solid var(--color-navy)',
+                background: '#FFFFFF',
+                color: 'var(--color-navy)',
+                fontSize: 14,
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              {crossLink.label}
+            </a>
+          </div>
         )}
       </form>
     </div>

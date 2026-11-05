@@ -491,6 +491,7 @@ export default function OrdinanceApp() {
         onLogin={onLogin}
         extraActions={<PreviewButtons onOpen={setScreen} />}
         topSlot={<LayoutToggle layout={layout} onChange={setLayout} />}
+        crossLink={{ href: '/', label: '🏙️ 관광정책 수행평가 하러 가기 →' }}
       />
     );
   }
