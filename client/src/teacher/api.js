@@ -55,6 +55,10 @@ export const teacherApi = {
   forceSubmit: (token, enrollmentId) => request(`/api/teacher/enrollments/${enrollmentId}/force-submit`, { method: 'POST', token }),
   getArchives: (token, enrollmentId) => request(`/api/teacher/archives/${enrollmentId}`, { token }),
   restoreArchive: (token, archiveId) => request(`/api/teacher/archives/${archiveId}/restore`, { method: 'POST', token }),
+  excludeStudent: (token, projectId, studentId) =>
+    request(`/api/teacher/projects/${projectId}/students/${studentId}/exclude`, { method: 'POST', token }),
+  restoreStudent: (token, projectId, studentId) =>
+    request(`/api/teacher/projects/${projectId}/students/${studentId}/exclude`, { method: 'DELETE', token }),
   getProgress: (token, projectId, classId) => request(`/api/teacher/progress/${projectId}/${classId}`, { token }),
   getResponses: (token, enrollmentId) => request(`/api/teacher/responses/${enrollmentId}`, { token }),
   getRubric: (token, projectId) => request(`/api/teacher/rubric/${projectId}`, { token }),

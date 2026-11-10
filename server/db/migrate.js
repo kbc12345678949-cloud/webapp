@@ -26,6 +26,15 @@ async function ensureSchema(db) {
     )`);
   await db.query('CREATE INDEX IF NOT EXISTS idx_response_archives_enrollment ON response_archives(enrollment_id)');
 
+  // 수행평가별 명단 제외(전출 등): 학생 정보·학번은 그대로 두고 해당 수행평가 집계·명단·CSV에서만 뺀다
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS project_excluded_students (
+      project_id  INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      student_id  INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (project_id, student_id)
+    )`);
+
   // 조례 수행평가 기본 틀
   await seedOrdinance(db);
 }

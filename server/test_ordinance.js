@@ -192,6 +192,32 @@ async function main() {
   r = await request.post(`/api/student/enrollments/${enr.id}/submit`).set(auth(t1));
   check('학생이 다시 직접 제출', r.status === 200 && r.body.submitted_by_teacher === false);
 
+  // 명단 제외(전출 등) / 복구
+  await db.query("INSERT INTO students (class_id, student_no, name) VALUES (1,'2103','다학생')");
+  const st3 = (await db.query("SELECT id FROM students WHERE student_no='2103'")).rows[0].id;
+  const t3 = await login('2학년 1반', '2103');
+  r = await request.post(`/api/teacher/projects/${pid}/students/${st3}/exclude`).set(auth(t1));
+  check('학생 토큰으로 명단 제외 불가(401)', r.status === 401);
+  r = await request.post(`/api/teacher/projects/${pid}/students/${st3}/exclude`).set(auth(tt));
+  check('교사: 명단 제외', r.status === 200);
+  r = await request.post(`/api/teacher/projects/${pid}/students/${st3}/exclude`).set(auth(tt));
+  check('명단 제외 두 번 눌러도 안전', r.status === 200);
+  r = await request.get(`/api/teacher/progress/${pid}/1`).set(auth(tt));
+  const row3 = r.body.find((x) => x.student_no === '2103');
+  check('진행 현황: 제외 표시 + 학번 그대로', row3 && row3.excluded === true && r.body.filter((x) => !x.excluded).length === 2);
+  const ex2 = await request.get(`/api/teacher/export-answers/${pid}/1`).set(auth(tt));
+  check('답안 CSV에서 제외', !ex2.text.includes('다학생') && ex2.text.includes('가학생'));
+  const ex3 = await request.get(`/api/teacher/export/${pid}/1`).set(auth(tt));
+  check('결과 CSV에서 제외', !ex3.text.includes('다학생'));
+  r = await request.get('/api/student/projects/ordinance').set(auth(t3));
+  check('제외된 학생은 응시 불가(403)', r.status === 403 && /대상이 아닙니다/.test(r.body.error));
+  r = await request.delete(`/api/teacher/projects/${pid}/students/${st3}/exclude`).set(auth(tt));
+  check('교사: 명단 복구', r.status === 200);
+  r = await request.get(`/api/teacher/progress/${pid}/1`).set(auth(tt));
+  check('복구 후 다시 집계', r.body.filter((x) => !x.excluded).length === 3);
+  r = await request.get('/api/student/projects/ordinance').set(auth(t3));
+  check('복구 후 응시 가능', r.status === 200);
+
   // 열람 모드
   await db.query('UPDATE projects SET review_only = true WHERE id=$1', [pid]);
   await db.query('DELETE FROM class_schedules');

@@ -138,13 +138,15 @@ router.get('/progress/:projectId/:classId', requireTeacher, async (req, res) => 
   const { rows } = await db.query(
     `SELECT st.id AS student_id, st.name, st.student_no, e.id AS enrollment_id, e.submitted_at,
             e.submitted_by_teacher, e.track_locked, t.title AS track_title, t.code AS track_code,
-            COUNT(r.id) AS steps_done
+            COUNT(r.id) AS steps_done,
+            (x.student_id IS NOT NULL) AS excluded
      FROM students st
      LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
      LEFT JOIN tracks t ON t.id = e.track_id
      LEFT JOIN responses r ON r.enrollment_id = e.id
+     LEFT JOIN project_excluded_students x ON x.project_id = $1 AND x.student_id = st.id
      WHERE st.class_id = $2
-     GROUP BY st.id, st.name, st.student_no, e.id, e.submitted_at, e.submitted_by_teacher, e.track_locked, t.title, t.code
+     GROUP BY st.id, st.name, st.student_no, e.id, e.submitted_at, e.submitted_by_teacher, e.track_locked, t.title, t.code, x.student_id
      ORDER BY st.student_no`,
     [projectId, classId]
   );
@@ -190,6 +192,27 @@ router.post('/enrollments/:enrollmentId/unsubmit', requireTeacher, async (req, r
   res.json(rows[0]);
 });
 
+// ---------- 수행평가 명단에서 제외 / 복구 (전출 등) ----------
+// 학생 정보와 학번은 그대로 두고, 이 수행평가의 진행 현황 집계·CSV·주제 분포에서만 뺀다.
+// 제외된 학생은 이 수행평가에 로그인해도 응시할 수 없다. 다른 수행평가 기록에는 영향 없음.
+router.post('/projects/:projectId/students/:studentId/exclude', requireTeacher, async (req, res) => {
+  const { projectId, studentId } = req.params;
+  const st = await db.query('SELECT id FROM students WHERE id = $1', [studentId]);
+  if (st.rows.length === 0) return res.status(404).json({ error: '학생을 찾을 수 없습니다.' });
+  await db.query(
+    `INSERT INTO project_excluded_students (project_id, student_id) VALUES ($1, $2)
+     ON CONFLICT (project_id, student_id) DO NOTHING`,
+    [projectId, studentId]
+  );
+  res.json({ ok: true });
+});
+
+router.delete('/projects/:projectId/students/:studentId/exclude', requireTeacher, async (req, res) => {
+  const { projectId, studentId } = req.params;
+  await db.query('DELETE FROM project_excluded_students WHERE project_id = $1 AND student_id = $2', [projectId, studentId]);
+  res.json({ ok: true });
+});
+
 // ---------- 제출 처리(교사가 마감) ----------
 // 응시 시간 안에 최종 제출하지 못한 학생의 '저장된 답안'을 그대로 제출 상태로 잠근다.
 // 최소 글자 수는 따지지 않는다. 이후 보충 응시로 반을 다시 열어도 이 학생은 고칠 수 없다.
@@ -230,6 +253,7 @@ router.get('/track-distribution/:projectId', requireTeacher, async (req, res) =>
      FROM enrollments e
      JOIN students st ON st.id = e.student_id
      WHERE e.project_id = $1 ${classFilter}
+       AND NOT EXISTS (SELECT 1 FROM project_excluded_students x WHERE x.project_id = $1 AND x.student_id = st.id)
      GROUP BY e.track_id`,
     params
   );
@@ -372,6 +396,7 @@ router.get('/export/:projectId/:classId', requireTeacher, async (req, res) => {
      FROM students st
      LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
      WHERE st.class_id = $2
+       AND NOT EXISTS (SELECT 1 FROM project_excluded_students x WHERE x.project_id = $1 AND x.student_id = st.id)
      ORDER BY st.student_no`,
     [projectId, classId]
   );
@@ -433,6 +458,7 @@ router.get('/export-answers/:projectId/:classId', requireTeacher, async (req, re
      FROM students st
      LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
      WHERE st.class_id = $2
+       AND NOT EXISTS (SELECT 1 FROM project_excluded_students x WHERE x.project_id = $1 AND x.student_id = st.id)
      ORDER BY st.student_no`,
     [projectId, classId]
   );
@@ -530,6 +556,7 @@ async function exportOrdinanceAnswers(req, res) {
      LEFT JOIN enrollments e ON e.student_id = st.id AND e.project_id = $1
      LEFT JOIN tracks t ON t.id = e.track_id
      WHERE st.class_id = $2
+       AND NOT EXISTS (SELECT 1 FROM project_excluded_students x WHERE x.project_id = $1 AND x.student_id = st.id)
      ORDER BY st.student_no`,
     [projectId, classId]
   );

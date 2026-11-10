@@ -118,6 +118,24 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
     }
   };
 
+  // 명단 제외(전출 등) / 복구: 학번은 그대로, 이 수행평가 집계·CSV에서만 뺀다
+  const toggleExclude = async (student) => {
+    const next = !student.excluded;
+    const ok = window.confirm(
+      next
+        ? `${student.student_no} ${student.name} 학생을 이 수행평가 명단에서 뺄까요?\n\n· 학번과 학생 정보는 그대로 남아요(다른 학생 번호도 그대로).\n· 제출 현황 인원, CSV, 주제 분포에서 빠지고, 이 수행평가에는 응시할 수 없어요.\n· 다른 수행평가 기록에는 영향이 없어요.\n· 잘못 눌렀으면 [명단 복구]로 되돌릴 수 있어요.`
+        : `${student.student_no} ${student.name} 학생을 이 수행평가 명단에 다시 넣을까요?`
+    );
+    if (!ok) return;
+    try {
+      if (next) await teacherApi.excludeStudent(token, projectId, student.student_id);
+      else await teacherApi.restoreStudent(token, projectId, student.student_id);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // 되돌리기 후: 목록(주제·진행 단계)과 답안을 새로 불러온다
   const refreshAfterRestore = async () => {
     if (!classId || !selected) return;
@@ -192,6 +210,37 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
 
       {error && <p style={{ color: 'var(--color-coral)', fontSize: 13 }}>{error}</p>}
 
+      {students && (() => {
+        const active = students.filter((s) => !s.excluded);
+        const submitted = active.filter((s) => s.submitted_at).length;
+        const excludedCount = students.length - active.length;
+        return (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 14,
+              flexWrap: 'wrap',
+              background: 'var(--color-bg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              padding: '10px 14px',
+              marginBottom: 12,
+            }}
+          >
+            <span style={{ fontSize: 14, color: 'var(--color-navy)', fontWeight: 600 }}>{className}</span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-body)' }}>
+              제출 완료{' '}
+              <b style={{ fontSize: 22, color: 'var(--color-teal)' }}>{submitted}</b>
+              <span style={{ fontSize: 16, color: 'var(--color-navy)', fontWeight: 600 }}> / {active.length}</span>명
+            </span>
+            <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
+              미제출 {active.length - submitted}명{excludedCount > 0 && ` · 명단 제외 ${excludedCount}명`}
+            </span>
+          </div>
+        );
+      })()}
+
       {students && (
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
@@ -205,7 +254,24 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
             </tr>
           </thead>
           <tbody>
-            {students.map((s) => (
+            {[...students.filter((s) => !s.excluded), ...students.filter((s) => s.excluded)].map((s) =>
+              s.excluded ? (
+                <tr key={s.student_id} style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', background: 'var(--color-bg)' }}>
+                  <td style={{ padding: 8 }}>{s.student_no}</td>
+                  <td style={{ padding: 8, textDecoration: 'line-through' }}>{s.name}</td>
+                  <td style={{ padding: 8, fontSize: 12 }} colSpan={isOrdinance ? 3 : 2}>
+                    명단 제외 (전출 등) · 집계·CSV에 포함되지 않음
+                  </td>
+                  <td style={{ padding: 8 }}>
+                    <button
+                      onClick={() => toggleExclude(s)}
+                      style={{ background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 10px', fontSize: 12, whiteSpace: 'nowrap' }}
+                    >
+                      명단 복구
+                    </button>
+                  </td>
+                </tr>
+              ) : (
               <tr key={s.student_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <td style={{ padding: 8 }}>{s.student_no}</td>
                 <td style={{ padding: 8 }}>{s.name}</td>
@@ -271,9 +337,28 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
                   >
                     답안 보기
                   </button>
+                  {isOrdinance && (
+                    <button
+                      onClick={() => toggleExclude(s)}
+                      style={{
+                        display: 'block',
+                        marginTop: 4,
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--color-text-muted)',
+                        padding: '2px 0',
+                        fontSize: 11,
+                        textDecoration: 'underline',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      명단 제외
+                    </button>
+                  )}
                 </td>
               </tr>
-            ))}
+              )
+            )}
           </tbody>
         </table>
       )}

@@ -23,7 +23,7 @@ export default function ReviewModeControl({ token, projectId }) {
       const lists = await Promise.all(
         realClasses.map(async (c) => {
           const rows = await teacherApi.getProgress(token, projectId, c.id);
-          return { className: c.name, students: rows.filter((r) => !r.submitted_at) };
+          return { className: c.name, students: rows.filter((r) => !r.submitted_at && !r.excluded) };
         })
       );
       setUnsubmitted(lists);

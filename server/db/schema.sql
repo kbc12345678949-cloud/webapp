@@ -180,3 +180,11 @@ CREATE INDEX idx_steps_project_order ON steps(project_id, display_order);
 CREATE INDEX idx_enrollments_project_student ON enrollments(project_id, student_id);
 CREATE INDEX idx_responses_enrollment ON responses(enrollment_id);
 CREATE INDEX idx_class_schedules_lookup ON class_schedules(project_id, class_id);
+
+-- 수행평가별 명단 제외(전출 등). 학생·학번은 그대로, 해당 수행평가 집계·명단·CSV에서만 뺀다
+CREATE TABLE project_excluded_students (
+  project_id  INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  student_id  INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (project_id, student_id)
+);

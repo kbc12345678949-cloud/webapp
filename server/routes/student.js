@@ -105,6 +105,15 @@ router.get('/projects/:code', requireStudent, async (req, res) => {
     return res.json({ project, steps, tracks, enrollment, responses, reviewOnly: true });
   }
 
+  // 이 수행평가 명단에서 제외된 학생(전출 등)은 응시할 수 없다
+  const excluded = await db.query(
+    'SELECT 1 FROM project_excluded_students WHERE project_id = $1 AND student_id = $2',
+    [project.id, req.student.studentId]
+  );
+  if (excluded.rows.length > 0) {
+    return res.status(403).json({ error: '이 수행평가 응시 대상이 아닙니다. 선생님께 문의해 주세요.', schedules: [] });
+  }
+
   const { isOpen, schedules } = await checkWindow(project.id, req.student.classId);
   if (!isOpen) {
     return res.status(403).json({ error: '지금은 응시 시간이 아닙니다.', schedules });
