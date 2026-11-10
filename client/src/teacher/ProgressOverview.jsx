@@ -1,5 +1,5 @@
 // src/teacher/ProgressOverview.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { teacherApi } from './api';
 import GradingPanel from './GradingPanel';
 import OrdinanceAnswerView from './OrdinanceAnswerView';
@@ -9,6 +9,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
   const [classes, setClasses] = useState([]);
   const [className, setClassName] = useState('');
   const [students, setStudents] = useState(null);
+  const [loadedClassName, setLoadedClassName] = useState(''); // 지금 표에 보이는 명단의 반
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null); // { name, enrollment_id }
   const [responses, setResponses] = useState(null);
@@ -26,17 +27,29 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
   }, [token]);
 
   const classId = classes.find((c) => c.name === className)?.id;
+  const latestClassRef = useRef(null); // 반을 빠르게 바꿀 때 늦게 도착한 이전 반 응답을 버리기 위함
+  latestClassRef.current = classId;
 
   const load = async () => {
     setError('');
     if (!classId) return;
     try {
-      const data = await teacherApi.getProgress(token, projectId, classId);
+      const requested = classId;
+      const requestedName = className;
+      const data = await teacherApi.getProgress(token, projectId, requested);
+      if (latestClassRef.current !== requested) return;
       setStudents(data);
+      setLoadedClassName(requestedName);
     } catch (err) {
       setError(err.message);
     }
   };
+
+  // 반을 고르면(처음 열 때 포함) 그 반 명단을 자동으로 불러온다. [조회]는 새로고침용
+  useEffect(() => {
+    if (classId) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId]);
 
   const download = async () => {
     if (!classId) return;
@@ -156,7 +169,13 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
         <label style={{ fontSize: 13, color: 'var(--color-text-body)' }}>반</label>
         <select
           value={className}
-          onChange={(e) => setClassName(e.target.value)}
+          onChange={(e) => {
+            // 반을 바꾸면 이전 반의 표·답안을 지우고 새 반 명단을 바로 불러온다
+            setClassName(e.target.value);
+            setStudents(null);
+            setSelected(null);
+            setResponses(null);
+          }}
           style={{ padding: 8, border: '1px solid var(--color-border)', borderRadius: 6 }}
         >
           {classes.map((c) => (
@@ -228,7 +247,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
               marginBottom: 12,
             }}
           >
-            <span style={{ fontSize: 14, color: 'var(--color-navy)', fontWeight: 600 }}>{className}</span>
+            <span style={{ fontSize: 14, color: 'var(--color-navy)', fontWeight: 600 }}>{loadedClassName}</span>
             <span style={{ fontSize: 13, color: 'var(--color-text-body)' }}>
               제출 완료{' '}
               <b style={{ fontSize: 22, color: 'var(--color-teal)' }}>{submitted}</b>
