@@ -53,5 +53,18 @@ button {
   --track-cols: 3;
 }
 
+/* 교사용 화면 태블릿 모드: 교사가 로그인 화면이나 상단 버튼에서 고르면 <html data-layout="teacher-tablet">이 붙는다.
+   화면 전체 폭을 넓히고, 각 탭 안쪽의 폭 제한(--teacher-content-max)도 푼다.
+   입력칸은 16px로 키워 아이패드에서 눌렀을 때 화면이 확대되지 않게 한다. */
+:root[data-layout="teacher-tablet"] {
+  --max-width: 1080px;
+  --teacher-content-max: 100%;
+}
+:root[data-layout="teacher-tablet"] input,
+:root[data-layout="teacher-tablet"] select,
+:root[data-layout="teacher-tablet"] textarea {
+  font-size: 16px !important;
+}
+
 @keyframes ordFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ordPop { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }

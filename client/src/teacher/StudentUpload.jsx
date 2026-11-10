@@ -27,7 +27,7 @@ export default function StudentUpload({ token }) {
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 640 }}>
+    <div style={{ padding: 20, maxWidth: 'var(--teacher-content-max, 640px)' }}>
       <h2 style={{ color: 'var(--color-navy)', fontSize: 19, fontWeight: 500, marginBottom: 8 }}>
         학생 명단 업로드
       </h2>

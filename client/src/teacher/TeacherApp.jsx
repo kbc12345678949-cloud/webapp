@@ -8,6 +8,7 @@ import StudentUpload from './StudentUpload';
 import ProgressOverview from './ProgressOverview';
 import ReviewModeControl from './ReviewModeControl';
 import { teacherApi } from './api';
+import { useTeacherLayout, TeacherLayoutSwitch } from './TeacherLayout';
 
 const TABS = [
   { key: 'upload', label: '학생 명단 업로드' },
@@ -21,6 +22,7 @@ const PROJECT_KEY = 'teacher:projectId';
 
 // projectId를 직접 넘기면(테스트 등) 그 수행평가로 고정, 넘기지 않으면 화면 위에서 고를 수 있다.
 export default function TeacherApp({ projectId: fixedProjectId }) {
+  const [layout, setLayout] = useTeacherLayout();
   const [token, setToken] = useState(null);
   const [tab, setTab] = useState('upload');
   const [projects, setProjects] = useState([]);
@@ -45,7 +47,7 @@ export default function TeacherApp({ projectId: fixedProjectId }) {
         .catch(() => setProjectId(1));
   }, [token, fixedProjectId]);
 
-  if (!token) return <TeacherLogin onLogin={setToken} />;
+  if (!token) return <TeacherLogin onLogin={setToken} layout={layout} onLayoutChange={setLayout} />;
   if (!projectId) return <p style={{ padding: 20 }}>불러오는 중...</p>;
 
   const project = projects.find((p) => p.id === projectId);
@@ -95,6 +97,7 @@ export default function TeacherApp({ projectId: fixedProjectId }) {
               </button>
             );
           })}
+          <TeacherLayoutSwitch layout={layout} onChange={setLayout} />
         </div>
       )}
       <div
@@ -123,6 +126,11 @@ export default function TeacherApp({ projectId: fixedProjectId }) {
             {t.key === 'distribution' && isOrdinance ? '주제 선택 분포' : t.label}
           </button>
         ))}
+        {projects.length <= 1 && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+            <TeacherLayoutSwitch layout={layout} onChange={setLayout} dark={false} />
+          </div>
+        )}
       </div>
 
       {/* key로 수행평가가 바뀔 때마다 각 화면을 새로 그린다(이전 수행평가 자료가 남지 않도록) */}

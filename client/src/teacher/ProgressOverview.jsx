@@ -147,7 +147,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 720 }}>
+    <div style={{ padding: 20, maxWidth: 'var(--teacher-content-max, 720px)' }}>
       <h2 style={{ color: 'var(--color-navy)', fontSize: 19, fontWeight: 500, marginBottom: 16 }}>
         반별 진행 현황
       </h2>

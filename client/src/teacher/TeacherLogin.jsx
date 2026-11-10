@@ -1,8 +1,9 @@
 // src/teacher/TeacherLogin.jsx
 import { useState } from 'react';
 import { teacherApi } from './api';
+import { TeacherLayoutToggle } from './TeacherLayout';
 
-export default function TeacherLogin({ onLogin }) {
+export default function TeacherLogin({ onLogin, layout, onLayoutChange }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,6 +25,7 @@ export default function TeacherLogin({ onLogin }) {
 
   return (
     <div style={{ maxWidth: 360, margin: '60px auto', padding: 20 }}>
+      {onLayoutChange && <TeacherLayoutToggle layout={layout} onChange={onLayoutChange} />}
       <h2 style={{ color: 'var(--color-navy)', fontSize: 20, fontWeight: 500, marginBottom: 20 }}>
         교사 로그인
       </h2>
@@ -39,7 +41,7 @@ export default function TeacherLogin({ onLogin }) {
             marginBottom: 10,
             border: '1px solid var(--color-border)',
             borderRadius: 8,
-            fontSize: 14,
+            fontSize: 16,
             fontFamily: 'var(--font-family)',
           }}
         />
@@ -54,7 +56,7 @@ export default function TeacherLogin({ onLogin }) {
             marginBottom: 14,
             border: '1px solid var(--color-border)',
             borderRadius: 8,
-            fontSize: 14,
+            fontSize: 16,
             fontFamily: 'var(--font-family)',
           }}
         />

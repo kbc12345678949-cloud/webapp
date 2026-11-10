@@ -81,7 +81,7 @@ export default function LiveDistribution({ token, projectId }) {
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 720 }}>
+    <div style={{ padding: 20, maxWidth: 'var(--teacher-content-max, 720px)' }}>
       <h2 style={{ color: 'var(--color-navy)', fontSize: 19, fontWeight: 500, marginBottom: 16 }}>
         실시간 집계 — 1차 판단 vs 최종 결정
       </h2>

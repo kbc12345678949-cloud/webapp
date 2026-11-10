@@ -127,7 +127,7 @@ export default function ScheduleControl({ token, projectId, projectCode = 'touri
   if (loading) return <p style={{ padding: 20 }}>불러오는 중...</p>;
 
   return (
-    <div style={{ padding: 20, maxWidth: 640 }}>
+    <div style={{ padding: 20, maxWidth: 'var(--teacher-content-max, 640px)' }}>
       <h2 style={{ color: 'var(--color-navy)', fontSize: 19, fontWeight: 500, marginBottom: 16 }}>
         응시 개폐 관리
       </h2>

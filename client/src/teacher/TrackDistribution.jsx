@@ -29,7 +29,7 @@ export default function TrackDistribution({ token, projectId }) {
   const max = data ? Math.max(1, ...data.distribution.map((d) => d.count)) : 1;
 
   return (
-    <div style={{ padding: 20, maxWidth: 640 }}>
+    <div style={{ padding: 20, maxWidth: 'var(--teacher-content-max, 640px)' }}>
       <h2 style={{ color: 'var(--color-navy)', fontSize: 19, fontWeight: 500, marginBottom: 6 }}>주제 선택 분포</h2>
       <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
         주제를 고른 학생 수(고정 전 포함). 막대 옆 괄호는 주제를 고정한 학생 / 최종 제출한 학생 수입니다.

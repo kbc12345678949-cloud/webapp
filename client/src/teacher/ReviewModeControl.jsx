@@ -59,7 +59,7 @@ export default function ReviewModeControl({ token, projectId }) {
   if (reviewOnly === null && !error) return <p style={{ padding: 20 }}>불러오는 중...</p>;
 
   return (
-    <div style={{ padding: 20, maxWidth: 640 }}>
+    <div style={{ padding: 20, maxWidth: 'var(--teacher-content-max, 640px)' }}>
       <h2 style={{ color: 'var(--color-navy)', fontSize: 19, fontWeight: 500, marginBottom: 6 }}>
         수행평가 종료 · 열람 모드
       </h2>
