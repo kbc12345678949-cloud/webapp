@@ -195,7 +195,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
             fontSize: 13,
           }}
         >
-          조회
+          🔄 새로고침
         </button>
         <button
           onClick={download}
