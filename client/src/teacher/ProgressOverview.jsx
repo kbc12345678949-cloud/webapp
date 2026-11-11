@@ -261,14 +261,16 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
       })()}
 
       {students && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <div style={{ overflowX: 'auto' }}>
+        {/* 표 글자 크기는 제목 '반별 진행 현황'(19px)과 같게 */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 19 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--color-border)', textAlign: 'left' }}>
-              <th style={{ padding: 8 }}>학번</th>
-              <th style={{ padding: 8 }}>이름</th>
-              {isOrdinance && <th style={{ padding: 8 }}>주제</th>}
-              <th style={{ padding: 8 }}>{isOrdinance ? '작성한 단계' : '진행 단계'}</th>
-              <th style={{ padding: 8 }}>제출 여부</th>
+              <th style={{ padding: 8, whiteSpace: 'nowrap' }}>학번</th>
+              <th style={{ padding: 8, whiteSpace: 'nowrap' }}>이름</th>
+              {isOrdinance && <th style={{ padding: 8, whiteSpace: 'nowrap' }}>주제</th>}
+              <th style={{ padding: 8, whiteSpace: 'nowrap' }}>{isOrdinance ? '작성한 단계' : '진행 단계'}</th>
+              <th style={{ padding: 8, whiteSpace: 'nowrap' }}>제출 여부</th>
               <th style={{ padding: 8 }}></th>
             </tr>
           </thead>
@@ -276,9 +278,9 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
             {[...students.filter((s) => !s.excluded), ...students.filter((s) => s.excluded)].map((s) =>
               s.excluded ? (
                 <tr key={s.student_id} style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', background: 'var(--color-bg)' }}>
-                  <td style={{ padding: 8 }}>{s.student_no}</td>
-                  <td style={{ padding: 8, textDecoration: 'line-through' }}>{s.name}</td>
-                  <td style={{ padding: 8, fontSize: 12 }} colSpan={isOrdinance ? 3 : 2}>
+                  <td style={{ padding: 8, whiteSpace: 'nowrap' }}>{s.student_no}</td>
+                  <td style={{ padding: 8, textDecoration: 'line-through', whiteSpace: 'nowrap' }}>{s.name}</td>
+                  <td style={{ padding: 8, fontSize: 15 }} colSpan={isOrdinance ? 3 : 2}>
                     명단 제외 (전출 등) · 집계·CSV에 포함되지 않음
                   </td>
                   <td style={{ padding: 8 }}>
@@ -292,15 +294,15 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
                 </tr>
               ) : (
               <tr key={s.student_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <td style={{ padding: 8 }}>{s.student_no}</td>
-                <td style={{ padding: 8 }}>{s.name}</td>
+                <td style={{ padding: 8, whiteSpace: 'nowrap' }}>{s.student_no}</td>
+                <td style={{ padding: 8, whiteSpace: 'nowrap' }}>{s.name}</td>
                 {isOrdinance && (
-                  <td style={{ padding: 8, fontSize: 12 }}>
+                  <td style={{ padding: 8, minWidth: 160 }}>
                     {s.track_title || '-'}
                     {s.track_title && !s.track_locked && <span style={{ color: 'var(--color-text-muted)' }}> (고정 전)</span>}
                   </td>
                 )}
-                <td style={{ padding: 8 }}>{isOrdinance ? `${s.steps_done} / 6` : `${s.steps_done}개`}</td>
+                <td style={{ padding: 8, whiteSpace: 'nowrap' }}>{isOrdinance ? `${s.steps_done} / 6` : `${s.steps_done}개`}</td>
                 <td style={{ padding: 8, whiteSpace: 'nowrap', color: s.submitted_at ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
                   {s.submitted_at ? '제출 완료' : '미제출'}
                   {s.submitted_at && s.submitted_by_teacher && (
@@ -380,6 +382,7 @@ export default function ProgressOverview({ token, projectId, projectCode }) {
             )}
           </tbody>
         </table>
+        </div>
       )}
 
       {selected && (
