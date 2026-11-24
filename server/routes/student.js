@@ -83,18 +83,13 @@ router.get('/projects/:code', requireStudent, async (req, res) => {
   const project = projectRows[0];
   const reviewOnly = !!project.review_only;
 
-  // 열람 모드: 응시 시간과 상관없이 들어와서 "나의 수행평가 기록"을 볼 수 있다.
-  // 이때는 새 진행 정보(enrollment)를 만들지 않고, 이미 있는 기록만 돌려준다.
-  if (reviewOnly) {
+  // 열람 모드: 응시 시간과 상관없이 들어와서 자기 기록을 볼 수 있다.
+  // 보기 전용 응답: 이미 있는 기록만 돌려주고 새 진행 정보(enrollment)는 만들지 않는다.
+  const sendReadOnly = async (enrollment) => {
     const { rows: steps } = await db.query(
       'SELECT * FROM steps WHERE project_id = $1 ORDER BY display_order',
       [project.id]
     );
-    const { rows: enrollRows } = await db.query(
-      'SELECT * FROM enrollments WHERE project_id = $1 AND student_id = $2',
-      [project.id, req.student.studentId]
-    );
-    const enrollment = enrollRows[0] || null;
     const responses = enrollment
       ? (await db.query('SELECT step_id, answer FROM responses WHERE enrollment_id = $1', [enrollment.id])).rows
       : [];
@@ -103,6 +98,15 @@ router.get('/projects/:code', requireStudent, async (req, res) => {
       [project.id]
     );
     return res.json({ project, steps, tracks, enrollment, responses, reviewOnly: true });
+  };
+  const { rows: myEnrollRows } = await db.query(
+    'SELECT * FROM enrollments WHERE project_id = $1 AND student_id = $2',
+    [project.id, req.student.studentId]
+  );
+  const myEnrollment = myEnrollRows[0] || null;
+
+  if (reviewOnly) {
+    return sendReadOnly(myEnrollment);
   }
 
   // 이 수행평가 명단에서 제외된 학생(전출 등)은 응시할 수 없다
@@ -115,6 +119,11 @@ router.get('/projects/:code', requireStudent, async (req, res) => {
   }
 
   const { isOpen, schedules } = await checkWindow(project.id, req.student.classId);
+  // 최종 제출한 학생은 응시 시간이 아니어도 자기 기록을 보기 전용으로 볼 수 있다.
+  // (답안 수정은 저장·제출 라우트에서 이미 막혀 있다. 응시 시간 안이면 예전처럼 '제출 완료' 화면으로 간다.)
+  if (!isOpen && myEnrollment?.submitted_at) {
+    return sendReadOnly(myEnrollment);
+  }
   if (!isOpen) {
     return res.status(403).json({ error: '지금은 응시 시간이 아닙니다.', schedules });
   }

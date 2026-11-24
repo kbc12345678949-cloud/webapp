@@ -179,7 +179,8 @@ async function main() {
     .send({ reviewOnly: false });
   check('열람 모드 끄기 200', rmOff.status === 200 && rmOff.body.reviewOnly === false);
   const rmClosed = await request.get('/api/student/projects/tourism').set('Authorization', `Bearer ${studentToken}`);
-  check('열람 모드 끄면 다시 응시 시간 규칙 적용(403)', rmClosed.status === 403);
+  // 이 학생은 이미 최종 제출했으므로, 열람 모드를 꺼도 자기 기록은 보기 전용으로 볼 수 있다.
+  check('열람 모드 꺼도 제출한 학생은 보기 전용 200', rmClosed.status === 200 && rmClosed.body.reviewOnly === true);
 
   console.log(`\n결과: ${pass}개 통과, ${fail}개 실패`);
   Module._load = originalLoad;

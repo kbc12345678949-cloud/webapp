@@ -196,6 +196,8 @@ export default function OrdinanceApp() {
   const track = serverTrack ? findTrack(serverTrack.code) : null;
   const locked = !!enrollment?.track_locked;
   const submitted = !!enrollment?.submitted_at;
+  // 보기 전용: 열람 모드이거나 최종 제출한 경우. 화면 흐름은 응시 때와 같고, 답안만 고칠 수 없다.
+  const readOnly = !!session?.reviewOnly || submitted;
 
   // ---------------- 자동 저장 ----------------
   // 단계별 답안을 한곳(App)에 모아 두고, 바뀐 단계만 0.8초 뒤 서버에 저장한다.
@@ -291,8 +293,10 @@ export default function OrdinanceApp() {
       setSession(data);
       if (data.reviewOnly) {
         ctxRef.current = null;
-        setScreen('record');
-        return;
+        const e0 = data.enrollment;
+        // 기록이 없거나 주제를 고정하기 전이면 '기록 없음' 안내, 아니면 2단계부터 응시 때와 같은 화면으로
+        if (!e0 || !e0.track_id || !e0.track_locked) return setScreen('record');
+        return setScreen('materials');
       }
       setupSaver(data, stu.token);
       const e = data.enrollment;
@@ -341,6 +345,7 @@ export default function OrdinanceApp() {
   };
 
   const setField = (stepKey, field, value) => {
+    if (readOnly) return;
     setAnswers((prev) => ({ ...prev, [stepKey]: { ...(prev[stepKey] || {}), [field]: value } }));
   };
 
@@ -553,6 +558,11 @@ export default function OrdinanceApp() {
           </div>
           {track && <TrackBadge track={track} />}
           <AnswerSummary track={track} answers={answers} />
+          {track && (
+            <button onClick={() => setScreen('materials')} style={{ ...primaryButton(true), marginTop: 14 }}>
+              2단계부터 단계별로 다시 보기 →
+            </button>
+          )}
         </div>
       </div>
     );
@@ -633,7 +643,11 @@ export default function OrdinanceApp() {
     return (
       <div>
         {header(2)}
-        {locked && <TopicBanner track={track} onChange={() => setModal('change1')} />}
+        {readOnly ? (
+          <ReadOnlyBanner track={track} enrollment={enrollment} />
+        ) : (
+          locked && <TopicBanner track={track} onChange={() => setModal('change1')} />
+        )}
         {modal === 'lock' && (
           <ConfirmModal
             message={'다음으로 넘어가면 이 주제로 고정됩니다.\n나중에 바꾸면 작성한 내용이 모두 삭제됩니다.'}
@@ -649,7 +663,7 @@ export default function OrdinanceApp() {
           <StageTitle no={2} title="배경 자료" />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
             <TrackBadge track={track} inline />
-            {!locked && (
+            {!locked && !readOnly && (
               <button onClick={() => setScreen('track')} style={{ ...linkButton, marginLeft: 16 }}>
                 다른 주제 선택하기
               </button>
@@ -664,13 +678,13 @@ export default function OrdinanceApp() {
             opened={opened}
             onOpen={(k) => setOpened((o) => (o.includes(k) ? o.filter((x) => x !== k) : [...o, k]))}
           />
-          {!locked && unread > 0 && (
+          {!locked && !readOnly && unread > 0 && (
             <p style={{ fontSize: 12.5, color: 'var(--color-coral)', margin: '4px 0 10px' }}>
               아직 열어 보지 않은 자료가 {unread}개 있어요.
             </p>
           )}
           <button
-            onClick={() => (locked ? goStage(3) : setModal('lock'))}
+            onClick={() => (locked || readOnly ? goStage(3) : setModal('lock'))}
             style={{ ...primaryButton(true), marginTop: 6 }}
           >
             다음: 3단계 문제 인식으로 →
@@ -688,7 +702,11 @@ export default function OrdinanceApp() {
   return (
     <div>
       {header(onCheck ? TOTAL_STEPS : stageNo)}
-      <TopicBanner track={track} onChange={() => setModal('change1')} />
+      {readOnly ? (
+        <ReadOnlyBanner track={track} enrollment={enrollment} />
+      ) : (
+        <TopicBanner track={track} onChange={() => setModal('change1')} />
+      )}
       <ChangeModals modal={modal} setModal={setModal} busy={busy} onConfirm={confirmChange} />
       {modal === 'submit' && (
         <ConfirmModal
@@ -719,7 +737,7 @@ export default function OrdinanceApp() {
       )}
 
       <StageNav current={onCheck ? 9 : stageNo} issues={issues} onGo={goStage} />
-      <Toolbar onOpen={setSheet} saveState={saveState} saveError={saveError} />
+      <Toolbar onOpen={setSheet} saveState={readOnly ? '' : saveState} saveError={saveError} />
 
       <div style={{ padding: '6px 18px 40px' }}>
         {message && <ErrorLine text={message} />}
@@ -745,7 +763,8 @@ export default function OrdinanceApp() {
                   q={q}
                   track={track}
                   answer={answers[stage.stepKey]}
-                  onChange={(next) => setAnswers((prev) => ({ ...prev, [stage.stepKey]: next }))}
+                  onChange={(next) => !readOnly && setAnswers((prev) => ({ ...prev, [stage.stepKey]: next }))}
+                  readOnly={readOnly}
                   flagged={flagged}
                   focusTarget={focusTarget}
                 />
@@ -756,6 +775,7 @@ export default function OrdinanceApp() {
                   track={track}
                   value={answers[stage.stepKey]?.[q.field] || ''}
                   onChange={(v) => setField(stage.stepKey, q.field, v)}
+                  readOnly={readOnly}
                   flagged={flagged.has(q.id)}
                   focusTarget={focusTarget}
                 />
@@ -775,7 +795,23 @@ export default function OrdinanceApp() {
           </>
         )}
 
-        {onCheck && (
+        {onCheck && readOnly && (
+          <>
+            <StageTitle no={9} title="내 답안 전체 확인" />
+            <p style={{ fontSize: 13, color: 'var(--color-text-body)', lineHeight: 1.6, margin: '0 0 14px' }}>
+              내가 쓴 답을 한 번에 볼 수 있어요. 제출한 답안이라 고칠 수는 없어요.
+            </p>
+            <AnswerSummary track={track} answers={answers} />
+            <button onClick={() => goStage(8)} style={{ ...secondaryButton, marginTop: 6 }}>
+              ← 8단계로 돌아가기
+            </button>
+            <button onClick={() => setScreen('materials')} style={{ ...secondaryButton, marginTop: 10 }}>
+              2단계 자료부터 다시 보기
+            </button>
+          </>
+        )}
+
+        {onCheck && !readOnly && (
           <>
             <StageTitle no={9} title="내 답안 전체 확인" />
             <p style={{ fontSize: 13, color: 'var(--color-text-body)', lineHeight: 1.6, margin: '0 0 14px' }}>
@@ -882,6 +918,25 @@ function TrackBadge({ track, inline }) {
       }}
     >
       {track.icon} {track.short}
+    </div>
+  );
+}
+
+function ReadOnlyBanner({ track, enrollment }) {
+  return (
+    <div
+      style={{
+        background: '#F4F5F7',
+        borderBottom: '1px solid var(--color-border)',
+        padding: '9px 14px',
+        fontSize: 12.5,
+        color: 'var(--color-navy)',
+        lineHeight: 1.5,
+      }}
+    >
+      🔒 '{track.short}' · {enrollment?.submitted_at ? `${formatKST(enrollment.submitted_at)}에 제출한 답안` : '내 기록'}을 보는 중이에요.
+      <br />
+      <span style={{ color: 'var(--color-text-muted)' }}>단계는 자유롭게 오갈 수 있지만, 답안은 고칠 수 없어요.</span>
     </div>
   );
 }
@@ -1072,6 +1127,14 @@ const textareaStyle = (bad) => ({
   background: bad ? '#FFF7F4' : '#FFFFFF',
 });
 
+// 보기 전용 입력칸: 고칠 수 없다는 것이 보이도록 회색 배경
+const readOnlyTextareaStyle = {
+  ...textareaStyle(false),
+  background: '#F4F5F7',
+  color: 'var(--color-text-body)',
+  cursor: 'default',
+};
+
 function Counter({ text, min }) {
   const len = countChars(text);
   if (!min) {
@@ -1088,7 +1151,7 @@ function Counter({ text, min }) {
   );
 }
 
-function TextQuestion({ q, track, value, onChange, flagged, focusTarget }) {
+function TextQuestion({ q, track, value, onChange, flagged, focusTarget, readOnly }) {
   const ref = useRef(null);
   const [showLaw, setShowLaw] = useState(false);
   useFocus(ref, q.id, focusTarget);
@@ -1147,15 +1210,16 @@ function TextQuestion({ q, track, value, onChange, flagged, focusTarget }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={q.rows || 4}
-        placeholder="여기에 답을 써 보세요."
-        style={textareaStyle(bad)}
+        readOnly={readOnly}
+        placeholder={readOnly ? '(작성하지 않음)' : '여기에 답을 써 보세요.'}
+        style={readOnly ? readOnlyTextareaStyle : textareaStyle(bad)}
       />
       <Counter text={value} min={q.min} />
     </div>
   );
 }
 
-function EvidenceQuestion({ q, track, answer, onChange, flagged, focusTarget }) {
+function EvidenceQuestion({ q, track, answer, onChange, flagged, focusTarget, readOnly }) {
   const firstRef = useRef(null);
   useFocus(firstRef, '6-1', focusTarget);
   const checked = answer?.checked || [];
@@ -1164,6 +1228,7 @@ function EvidenceQuestion({ q, track, answer, onChange, flagged, focusTarget }) 
   const noneChecked = flagged.has('6-1') && problems.some((p) => p.fieldId === '6-1');
 
   const toggle = (k) => {
+    if (readOnly) return;
     const next = checked.includes(k) ? checked.filter((x) => x !== k) : MATERIAL_KEYS.filter((x) => x === k || checked.includes(x));
     onChange({ ...(answer || {}), checked: next, reasons });
   };
@@ -1192,13 +1257,14 @@ function EvidenceQuestion({ q, track, answer, onChange, flagged, focusTarget }) 
           inputRef={idx === 0 ? firstRef : null}
           flagged={flagged.has(`6-1-${k}`)}
           focusTarget={focusTarget}
+          readOnly={readOnly}
         />
       ))}
     </div>
   );
 }
 
-function EvidenceRow({ k, track, isChecked, onToggle, reason, onReason, min, inputRef, flagged, focusTarget }) {
+function EvidenceRow({ k, track, isChecked, onToggle, reason, onReason, min, inputRef, flagged, focusTarget, readOnly }) {
   const [peek, setPeek] = useState(false);
   const ref = useRef(null);
   useFocus(ref, `6-1-${k}`, focusTarget);
@@ -1220,6 +1286,7 @@ function EvidenceRow({ k, track, isChecked, onToggle, reason, onReason, min, inp
           id={`check-${k}`}
           checked={isChecked}
           onChange={onToggle}
+          disabled={readOnly}
           style={{ width: 20, height: 20, accentColor: 'var(--color-teal)' }}
         />
         <label htmlFor={`check-${k}`} style={{ flex: 1, fontSize: 13.5, color: 'var(--color-navy)', fontWeight: 500 }}>
@@ -1240,10 +1307,11 @@ function EvidenceRow({ k, track, isChecked, onToggle, reason, onReason, min, inp
             ref={ref}
             id={`field-6-1-${k}`}
             value={reason}
-            onChange={(e) => onReason(e.target.value)}
+            onChange={(e) => !readOnly && onReason(e.target.value)}
             rows={3}
-            placeholder="이 자료가 왜, 어떻게 내 조례를 뒷받침하나요?"
-            style={textareaStyle(bad)}
+            readOnly={readOnly}
+            placeholder={readOnly ? '(작성하지 않음)' : '이 자료가 왜, 어떻게 내 조례를 뒷받침하나요?'}
+            style={readOnly ? readOnlyTextareaStyle : textareaStyle(bad)}
           />
           <Counter text={reason} min={min} />
         </div>

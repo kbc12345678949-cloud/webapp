@@ -218,6 +218,18 @@ async function main() {
   r = await request.get('/api/student/projects/ordinance').set(auth(t3));
   check('복구 후 응시 가능', r.status === 200);
 
+  // 최종 제출한 학생은 응시 시간 밖에도 보기 전용으로 자기 기록을 본다 (열람 모드를 켜지 않아도)
+  await db.query('DELETE FROM class_schedules');
+  r = await request.get('/api/student/projects/ordinance').set(auth(t1));
+  check('제출한 학생: 시간 밖에도 보기 전용 200 + 답안 포함',
+    r.status === 200 && r.body.reviewOnly === true && r.body.enrollment.submitted_at && r.body.responses.length > 0, r.body);
+  r = await request.put(`/api/student/enrollments/${enr.id}/responses/${stepId.o3}`).set(auth(t1)).send({ answer: o3, trackId: noise.id });
+  check('제출한 학생: 보기 전용이라 저장 불가', r.status >= 400);
+  r = await request.get('/api/student/projects/ordinance').set(auth(t3));
+  check('미제출 학생은 시간 밖이면 그대로 403', r.status === 403 && /응시 시간이 아닙니다/.test(r.body.error));
+  r = await request.get('/api/student/projects/ordinance').set(auth(t2));
+  check('미제출 학생(t2)도 시간 밖이면 403', r.status === 403);
+
   // 열람 모드
   await db.query('UPDATE projects SET review_only = true WHERE id=$1', [pid]);
   await db.query('DELETE FROM class_schedules');
