@@ -4,6 +4,7 @@ import ProgressHeader from '../components/ProgressHeader';
 import MaterialIcon from '../components/MaterialIcon';
 import MaterialChart from '../components/MaterialChart';
 import { fetchMaterials } from '../api';
+import { useTourismShell } from '../components/TourismShell';
 
 const AUTO_ADVANCE_DELAY = 700; // 정답을 맞춘 뒤 다음 자료로 넘어가기 전 잠깐 보여주는 시간(ms)
 
@@ -34,7 +35,7 @@ const cardStyle = {
   marginBottom: 18,
 };
 
-function OXButtons({ selected, correctValue, onSelect }) {
+function OXButtons({ selected, correctValue, onSelect, disabled }) {
   return (
     <div style={{ display: 'flex', gap: 10 }}>
       {[
@@ -57,7 +58,8 @@ function OXButtons({ selected, correctValue, onSelect }) {
         return (
           <button
             key={opt.label}
-            onClick={() => onSelect(opt.value)}
+            onClick={() => !disabled && onSelect(opt.value)}
+            disabled={disabled}
             style={{
               flex: 1,
               padding: '10px 0',
@@ -77,7 +79,7 @@ function OXButtons({ selected, correctValue, onSelect }) {
   );
 }
 
-function MCOptions({ options, selectedIndex, correctIndex, onSelect }) {
+function MCOptions({ options, selectedIndex, correctIndex, onSelect, disabled }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {options.map((opt, i) => {
@@ -97,7 +99,8 @@ function MCOptions({ options, selectedIndex, correctIndex, onSelect }) {
         return (
           <button
             key={i}
-            onClick={() => onSelect(i)}
+            onClick={() => !disabled && onSelect(i)}
+            disabled={disabled}
             style={{
               textAlign: 'left',
               padding: '10px 12px',
@@ -116,7 +119,13 @@ function MCOptions({ options, selectedIndex, correctIndex, onSelect }) {
   );
 }
 
-function QuestionBlock({ q, answer, onChange }) {
+function correctAnswerText(q) {
+  if (q.question_type === 'mc') return `${Number(q.answer) + 1}번 ${q.options?.[Number(q.answer)] ?? ''}`;
+  if (q.question_type === 'ox') return q.answer === 'true' ? 'O' : 'X';
+  return String(q.answer ?? '');
+}
+
+function QuestionBlock({ q, answer, onChange, readOnly }) {
   const correctIndex = q.question_type === 'mc' && q.answer !== undefined ? Number(q.answer) : undefined;
   const correctBool = q.question_type === 'ox' && q.answer !== undefined ? q.answer === 'true' : undefined;
 
@@ -126,38 +135,49 @@ function QuestionBlock({ q, answer, onChange }) {
         {q.prompt}
       </p>
       {q.question_type === 'ox' && (
-        <OXButtons selected={answer} correctValue={correctBool} onSelect={onChange} />
+        <OXButtons selected={answer} correctValue={correctBool} onSelect={onChange} disabled={readOnly} />
       )}
       {q.question_type === 'mc' && (
-        <MCOptions options={q.options} selectedIndex={answer} correctIndex={correctIndex} onSelect={onChange} />
+        <MCOptions options={q.options} selectedIndex={answer} correctIndex={correctIndex} onSelect={onChange} disabled={readOnly} />
       )}
       {q.question_type === 'short' && (
         <input
           type="text"
           value={answer || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="답을 입력하세요"
+          onChange={(e) => !readOnly && onChange(e.target.value)}
+          readOnly={readOnly}
+          placeholder={readOnly ? '' : '답을 입력하세요'}
           style={{
             width: '100%',
             padding: '10px 12px',
             borderRadius: 8,
             border: '1.5px solid var(--color-border)',
-            fontSize: 13.5,
+            fontSize: 16, // 아이폰 화면 확대 방지
             fontFamily: 'var(--font-family)',
+            background: readOnly ? '#F4F5F7' : '#FFFFFF',
           }}
         />
+      )}
+      {readOnly && (
+        <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--color-teal)' }}>정답: {correctAnswerText(q)}</p>
       )}
     </div>
   );
 }
 
-export default function Step1({ onComplete, student, token, projectId, trackId, stepId, initialAnswers, initialIndex, onDraftChange }) {
+// allUnlocked: 이미 STEP3 이후까지 가 본 학생은 자료 7개를 모두 자유롭게 다시 볼 수 있다.
+export default function Step1({ onComplete, student, token, projectId, trackId, stepId, initialAnswers, initialIndex, onDraftChange, allUnlocked = false }) {
+  const { readOnly } = useTourismShell();
   const [materials, setMaterials] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [index, setIndex] = useState(initialIndex ?? 0);
+  const [maxReached, setMaxReached] = useState(allUnlocked ? 99 : initialIndex ?? 0); // 한 번 가 본 자료까지는 점을 눌러 오갈 수 있다
+  useEffect(() => {
+    setMaxReached((m) => Math.max(m, index));
+  }, [index]);
   const [answers, setAnswers] = useState(initialAnswers ?? {}); // { materialKey: [answer, answer, ...] }
   const [autoAdvancing, setAutoAdvancing] = useState(false);
-  const autoAdvancedRef = useRef(new Set(Array.from({ length: initialIndex ?? 0 }, (_, i) => i)));
+  const autoAdvancedRef = useRef(new Set(Array.from({ length: allUnlocked ? 99 : initialIndex ?? 0 }, (_, i) => i)));
   const goNextRef = useRef(() => {});
 
   useEffect(() => {
@@ -170,7 +190,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
   // STEP3 등으로 갔다가 "이전 단계로" 되돌아왔을 때도 풀었던 자료·위치가 유지되도록,
   // 바뀔 때마다 상위(App)에도 알려서 App이 기억하게 한다.
   useEffect(() => {
-    onDraftChange?.({ answers, index });
+    if (!readOnly) onDraftChange?.({ answers, index });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, index]);
 
@@ -185,7 +205,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
     material.questions.every((q, i) => isCorrectAnswer(q, currentAnswers[i]));
   // 테스트반은 정답을 맞히지 않아도 다음 자료로 넘어갈 수 있다(빠른 점검·시연용)
   const isTestClass = student?.className === '테스트반';
-  const canProceed = allCorrect || isTestClass;
+  const canProceed = allCorrect || isTestClass || readOnly;
 
   // 확인 문제를 전부 맞히면, 같은 자료를 다시 볼 때(이전 자료로 되돌아왔을 때)는
   // 자동으로 튕겨나가지 않도록 "이미 자동 전환된 자료" 목록을 기억해둔다.
@@ -193,7 +213,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
   // STEP3에서 되돌아와 마지막 자료를 다시 확인할 때, 이미 맞힌 정답이라 곧바로
   // 다시 튕겨나가 버리는 문제가 있었기 때문이다 — 이 자료만큼은 항상 버튼을 직접 눌러 넘어가게 한다.
   useEffect(() => {
-    if (!allCorrect || isLast || autoAdvancedRef.current.has(index)) {
+    if (readOnly || !allCorrect || isLast || autoAdvancedRef.current.has(index)) {
       setAutoAdvancing(false);
       return;
     }
@@ -204,7 +224,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
       goNextRef.current();
     }, AUTO_ADVANCE_DELAY);
     return () => clearTimeout(timer);
-  }, [allCorrect, isLast, index]);
+  }, [allCorrect, isLast, index, readOnly]);
 
   if (loadError) {
     return (
@@ -251,7 +271,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
       {/* 자료 진행 점 표시 — 이미 맞힌 자료는 클릭해서 자유롭게 다시 볼 수 있다 */}
       <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
         {materials.map((m, i) => {
-          const unlocked = i <= index;
+          const unlocked = readOnly || i <= Math.max(index, maxReached);
           return (
             <button
               key={m.material_key}
@@ -306,6 +326,7 @@ export default function Step1({ onComplete, student, token, projectId, trackId, 
               q={q}
               answer={answers[material.material_key]?.[qIdx]}
               onChange={(v) => setAnswer(qIdx, v)}
+              readOnly={readOnly}
             />
           ))}
         </div>

@@ -6,9 +6,12 @@ import { fetchMaterials } from '../api';
 import MaterialChart from '../components/MaterialChart';
 import BudgetTable from '../components/BudgetTable';
 import ReviewPanel from '../components/ReviewPanel';
+import { useTourismShell } from '../components/TourismShell';
 
-export default function Step4({ previousChoice, step3Answer, onComplete, onBack, student, token, projectId, stepId, budgetGiven, onBudgetChange }) {
-  const [phase, setPhase] = useState('alert'); // 'alert' | 'materials'
+// initialPhase: 이미 지나간 단계로 되돌아온 경우엔 속보 화면을 건너뛰고 자료부터 보여준다.
+export default function Step4({ previousChoice, step3Answer, onComplete, onBack, student, token, projectId, stepId, budgetGiven, onBudgetChange, initialPhase = 'alert' }) {
+  const { readOnly } = useTourismShell();
+  const [phase, setPhase] = useState(initialPhase); // 'alert' | 'materials'
   const [materials, setMaterials] = useState(null);
   const [loadError, setLoadError] = useState('');
   const policy = policies.find((p) => p.id === previousChoice);
@@ -156,7 +159,7 @@ export default function Step4({ previousChoice, step3Answer, onComplete, onBack,
                 {m.body}
               </p>
               <MaterialChart materialKey={m.material_key} />
-              {m.material_key === 'n2' && <BudgetTable given={budgetGiven} onToggle={onBudgetChange} />}
+              {m.material_key === 'n2' && <BudgetTable given={budgetGiven || {}} onToggle={onBudgetChange} readOnly={readOnly} />}
             </div>
           ))}
 

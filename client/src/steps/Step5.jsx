@@ -5,38 +5,29 @@ import { policies } from '../data/policies';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import ReviewPanel from '../components/ReviewPanel';
 import { BUDGET_ITEMS } from '../components/BudgetTable';
-import { useAutoSave } from '../hooks/useAutoSave';
-import { saveResponse } from '../api';
+import { useTourismShell } from '../components/TourismShell';
+import { textareaStyle } from '../components/fieldStyle';
+import { MIN_STEP5 as MIN_CHARS_STEP5 } from '../data/tourismFlow';
 
-const MIN_CHARS_STEP5 = 75;
-
-export default function Step5({ previousChoice, step3Answer, budgetGiven, onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
+// 저장·글자 수 확인은 App이 맡는다. 뒤 단계(최종 결정)가 이 판단을 이어받으므로 유지/변경 선택만은 해야 넘어간다.
+export default function Step5({ previousChoice, step3Answer, budgetGiven, onComplete, onBack, student, initialAnswer, onDraftChange }) {
+  const { readOnly } = useTourismShell();
   const [decision, setDecision] = useState(initialAnswer?.decision ?? null);
   const [newChoice, setNewChoice] = useState(
     initialAnswer?.decision === 'change' ? initialAnswer.choice : null
   );
   const [reason, setReason] = useState(initialAnswer?.reason ?? '');
 
-  // 테스트반은 글자 수·반복문자 조건 없이, 유지/변경 여부만 고르면 바로 넘어갈 수 있다
-  const isTestClass = student?.className === '테스트반';
   const prevPolicy = policies.find((p) => p.id === previousChoice);
   const charCount = reason.trim().length;
   const meetsMin = charCount >= MIN_CHARS_STEP5;
   const hasAbuse = hasRepeatedCharacterAbuse(reason);
-  const decisionReady = decision === 'keep' || (decision === 'change' && newChoice);
-  const canSubmit = decisionReady && (isTestClass || (meetsMin && !hasAbuse));
+  const decisionReady = decision === 'keep' || (decision === 'change' && !!newChoice && newChoice !== previousChoice);
+  const canSubmit = readOnly || decisionReady;
   const finalChoice = decision === 'change' ? newChoice : previousChoice;
 
-  const { status: saveStatus, error: saveError } = useAutoSave(
-    token,
-    enrollmentId,
-    stepId,
-    { decision, choice: finalChoice, reason },
-    { skip: !decision && !reason }
-  );
-
   useEffect(() => {
-    onDraftChange?.({ decision, choice: finalChoice, reason });
+    if (!readOnly) onDraftChange?.({ decision, choice: finalChoice, reason });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decision, newChoice, reason]);
 
@@ -111,14 +102,15 @@ export default function Step5({ previousChoice, step3Answer, budgetGiven, onComp
         )}
 
         {/* 유지 / 변경 */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <div id="field-t5-decision" style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
           {[
             { key: 'keep', label: '기존 선택 유지' },
             { key: 'change', label: '다른 정책으로 변경' },
           ].map((opt) => (
             <button
               key={opt.key}
-              onClick={() => setDecision(opt.key)}
+              onClick={() => !readOnly && setDecision(opt.key)}
+              disabled={readOnly}
               style={{
                 flex: 1,
                 padding: '12px 8px',
@@ -141,7 +133,8 @@ export default function Step5({ previousChoice, step3Answer, budgetGiven, onComp
             {policies.filter((p) => p.id !== previousChoice).map((p) => (
               <button
                 key={p.id}
-                onClick={() => setNewChoice(p.id)}
+                onClick={() => !readOnly && setNewChoice(p.id)}
+                disabled={readOnly}
                 style={{
                   textAlign: 'left',
                   padding: '10px 12px',
@@ -172,37 +165,25 @@ export default function Step5({ previousChoice, step3Answer, budgetGiven, onComp
             그렇게 판단한 이유를 서술해주세요
           </p>
           <textarea
+            id="field-t5-reason"
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(e) => !readOnly && setReason(e.target.value)}
+            readOnly={readOnly}
             rows={5}
-            placeholder="새로운 자료를 반영해, 유지 또는 변경한 이유를 구체적으로 써보세요."
-            style={{
-              width: '100%',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              padding: 10,
-              fontSize: 13.5,
-              fontFamily: 'var(--font-family)',
-              resize: 'vertical',
-            }}
+            placeholder={readOnly ? '(작성하지 않음)' : '새로운 자료를 반영해, 유지 또는 변경한 이유를 구체적으로 써보세요.'}
+            style={textareaStyle(readOnly)}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-            <span style={{ fontSize: 12, color: meetsMin ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
-              {charCount} / {MIN_CHARS_STEP5}자 이상
+            <span style={{ fontSize: 12, color: meetsMin && !hasAbuse ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
+              {charCount} / {MIN_CHARS_STEP5}자 이상 {meetsMin && !hasAbuse ? '✓' : ''}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-              {saveStatus === 'saving' && '저장 중...'}
-              {saveStatus === 'saved' && '저장됨'}
-              {saveStatus === 'error' && (
-                <span style={{ color: 'var(--color-coral)' }}>저장 실패: {saveError}</span>
-              )}
-            </span>
+            {hasAbuse && <span style={{ fontSize: 12, color: 'var(--color-coral)' }}>같은 글자가 반복되고 있어요</span>}
           </div>
         </div>
 
         <button
           disabled={!canSubmit}
-          onClick={async () => { await saveResponse(token, enrollmentId, stepId, { decision, choice: finalChoice, reason }); onComplete({ decision, choice: finalChoice, reason }); }}
+          onClick={() => onComplete({ decision, choice: finalChoice, reason })}
           style={{
             width: '100%',
             background: canSubmit ? 'var(--color-navy)' : 'var(--color-border)',
@@ -218,13 +199,12 @@ export default function Step5({ previousChoice, step3Answer, budgetGiven, onComp
         </button>
         {!canSubmit && (
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
-            {!decisionReady
-              ? '유지 또는 변경 여부를 선택해주세요.'
-              : isTestClass
-              ? ''
-              : hasAbuse
-              ? '같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.'
-              : `${MIN_CHARS_STEP5 - charCount}자 더 작성해주세요.`}
+            {decision === 'change' ? '바꿀 정책을 골라야 다음 단계로 넘어갈 수 있어요.' : '유지 또는 변경을 골라야 다음 단계로 넘어갈 수 있어요.'}
+          </p>
+        )}
+        {canSubmit && !readOnly && !meetsMin && (
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8, textAlign: 'center' }}>
+            글자 수는 최종 제출 전까지 채우면 돼요.
           </p>
         )}
       </div>

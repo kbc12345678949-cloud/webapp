@@ -20,7 +20,7 @@ describe('Step5 재판단', () => {
   it('아무 선택 없으면 버튼 비활성화 + 안내 문구', () => {
     render(<Step5 {...STEP_PROPS} previousChoice="B" onComplete={() => {}} />);
     expect(screen.getByText('다음 단계로')).toBeDisabled();
-    expect(screen.getByText('유지 또는 변경 여부를 선택해주세요.')).toBeInTheDocument();
+    expect(screen.getByText(/유지 또는 변경을 골라야/)).toBeInTheDocument();
   });
 
   it('"기존 선택 유지" + 50자 이상 작성하면 원래 정책(B) 그대로 제출된다', async () => {
@@ -63,6 +63,8 @@ describe('Step5 재판단', () => {
     fireEvent.change(screen.getByPlaceholderText(/유지 또는 변경한 이유를/), {
       target: { value: '짧은 이유' },
     });
-    expect(screen.getByText('45자 더 작성해주세요.')).toBeInTheDocument();
+    // 글자 수는 쓰는 동안 막지 않고(최종 제출 때 확인), 카운터와 안내만 보여준다
+    expect(screen.getByText(/5 \/ 75자 이상/)).toBeInTheDocument();
+    expect(screen.getByText('다음 단계로')).not.toBeDisabled();
   });
 });

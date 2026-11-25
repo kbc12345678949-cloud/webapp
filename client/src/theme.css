@@ -68,3 +68,10 @@ button {
 
 @keyframes ordFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ordPop { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* 관광정책 '내 답안 전체 확인'에서 부족 문항으로 바로 갔을 때 그 칸을 강조 */
+.flag-missing {
+  outline: 2px solid var(--color-coral) !important;
+  outline-offset: 2px;
+  background-color: #fff7f4 !important;
+}

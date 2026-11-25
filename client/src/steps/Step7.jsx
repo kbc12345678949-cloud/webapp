@@ -5,8 +5,8 @@ import StakeholderIcon from '../components/StakeholderIcon';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import HintQuestions from '../components/HintQuestions';
 import ReviewPanel from '../components/ReviewPanel';
-import { useAutoSave } from '../hooks/useAutoSave';
-import { saveResponse } from '../api';
+import { useTourismShell } from '../components/TourismShell';
+import { textareaStyle } from '../components/fieldStyle';
 
 const HARM_CONCERN_HINTS = [
   '이들이 가장 크게 손해 보거나 아쉬워할 부분은 무엇인가요?',
@@ -23,33 +23,24 @@ const TAGS = [
   { key: 'neutral', label: '상관없어 보임', color: '#000000' },
 ];
 
-export default function Step7({ onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, loadError, initialAnswer, onDraftChange, step3Answer, step5Answer, budgetGiven }) {
-  const [phase, setPhase] = useState(initialAnswer?.mitigation || initialAnswer?.harmConcern ? 'writing' : 'classify');
+// 저장·빈칸 확인은 App이 맡는다(최종 제출 때 한꺼번에 확인). 분류·서술 모두 다 채우지 않아도 앞뒤로 오갈 수 있다.
+// initialPhase: '내 답안 전체 확인'에서 특정 칸으로 바로 갈 때 분류/서술 화면 중 어디를 열지 정한다.
+export default function Step7({ onComplete, onBack, student, stakeholders, loadError, initialAnswer, onDraftChange, step3Answer, step5Answer, budgetGiven, initialPhase }) {
+  const { readOnly } = useTourismShell();
+  const [phase, setPhase] = useState(
+    initialPhase || (initialAnswer?.mitigation || initialAnswer?.harmConcern ? 'writing' : 'classify')
+  );
   const [classification, setClassification] = useState(initialAnswer?.classification ?? {});
   const [harmConcern, setHarmConcern] = useState(initialAnswer?.harmConcern ?? '');
   const [mitigation, setMitigation] = useState(initialAnswer?.mitigation ?? '');
 
-  // 테스트반은 분류·글쓰기 조건 없이 전부 건너뛸 수 있다 (공개수업 참관용)
-  const isTestClass = student?.className === '테스트반';
-
-  const allClassified = isTestClass || (stakeholders && stakeholders.every((s) => classification[s.stakeholder_key]));
+  const allClassified = !!stakeholders && stakeholders.every((s) => classification[s.stakeholder_key]);
   const harmGroup = stakeholders ? stakeholders.filter((s) => classification[s.stakeholder_key] === 'harm') : [];
   const harmConcernHasAbuse = hasRepeatedCharacterAbuse(harmConcern);
   const mitigationHasAbuse = hasRepeatedCharacterAbuse(mitigation);
-  const writingCanSubmit = isTestClass
-    ? true
-    : harmConcern.trim().length > 0 && !harmConcernHasAbuse && mitigation.trim().length > 0 && !mitigationHasAbuse;
-
-  const { status: saveStatus, error: saveError } = useAutoSave(
-    token,
-    enrollmentId,
-    stepId,
-    { classification, harmConcern, mitigation },
-    { skip: Object.keys(classification).length === 0 }
-  );
 
   useEffect(() => {
-    onDraftChange?.({ classification, harmConcern, mitigation });
+    if (!readOnly) onDraftChange?.({ classification, harmConcern, mitigation });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classification, harmConcern, mitigation]);
 
@@ -88,6 +79,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
             <p style={{ color: 'var(--color-text-body)', fontSize: 13 }}>불러오는 중...</p>
           )}
 
+          <div id="field-t7-classify" />
           {stakeholders &&
             stakeholders.map((s) => (
               <div
@@ -110,7 +102,8 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
                     return (
                       <button
                         key={t.key}
-                        onClick={() => setClassification((prev) => ({ ...prev, [s.stakeholder_key]: t.key }))}
+                        onClick={() => !readOnly && setClassification((prev) => ({ ...prev, [s.stakeholder_key]: t.key }))}
+                        disabled={readOnly}
                         style={{
                           flex: 1,
                           minHeight: 44,
@@ -131,12 +124,11 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
             ))}
 
           <button
-            disabled={!allClassified}
             onClick={() => setPhase('writing')}
             style={{
               width: '100%',
-              background: allClassified ? 'var(--color-navy)' : 'var(--color-border)',
-              color: allClassified ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
+              background: 'var(--color-navy)',
+              color: 'var(--color-navy-text-on)',
               border: 'none',
               borderRadius: 'var(--radius-button)',
               padding: 14,
@@ -145,11 +137,11 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
               marginTop: 4,
             }}
           >
-            분류 완료
+            {readOnly ? '다음: 보완책 보기 →' : '분류 완료 → 보완책 쓰기'}
           </button>
-          {!allClassified && (
-            <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
-              6명 모두 분류해주세요. ({Object.keys(classification).length}/6)
+          {!allClassified && !readOnly && (
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8, textAlign: 'center' }}>
+              지금 {Object.keys(classification).length}/6명 분류했어요. 나머지는 최종 제출 전까지 채우면 돼요.
             </p>
           )}
         </div>
@@ -219,19 +211,13 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
           </p>
           <HintQuestions questions={HARM_CONCERN_HINTS} />
           <textarea
+            id="field-t7-harm"
             value={harmConcern}
-            onChange={(e) => setHarmConcern(e.target.value)}
+            onChange={(e) => !readOnly && setHarmConcern(e.target.value)}
+            readOnly={readOnly}
             rows={3}
-            placeholder="짧게 한두 문장으로 써주세요."
-            style={{
-              width: '100%',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              padding: 10,
-              fontSize: 13.5,
-              fontFamily: 'var(--font-family)',
-              resize: 'vertical',
-            }}
+            placeholder={readOnly ? '(작성하지 않음)' : '짧게 한두 문장으로 써주세요.'}
+            style={textareaStyle(readOnly)}
           />
         </div>
 
@@ -249,38 +235,22 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
           </p>
           <HintQuestions questions={MITIGATION_HINTS} />
           <textarea
+            id="field-t7-mitigation"
             value={mitigation}
-            onChange={(e) => setMitigation(e.target.value)}
+            onChange={(e) => !readOnly && setMitigation(e.target.value)}
+            readOnly={readOnly}
             rows={6}
-            placeholder="보완책을 구체적으로 서술해주세요."
-            style={{
-              width: '100%',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              padding: 10,
-              fontSize: 13.5,
-              fontFamily: 'var(--font-family)',
-              resize: 'vertical',
-            }}
+            placeholder={readOnly ? '(작성하지 않음)' : '보완책을 구체적으로 서술해주세요.'}
+            style={textareaStyle(readOnly)}
           />
-          <div style={{ textAlign: 'right', marginTop: 6 }}>
-            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-              {saveStatus === 'saving' && '저장 중...'}
-              {saveStatus === 'saved' && '저장됨'}
-              {saveStatus === 'error' && (
-                <span style={{ color: 'var(--color-coral)' }}>저장 실패: {saveError}</span>
-              )}
-            </span>
-          </div>
         </div>
 
         <button
-          disabled={!writingCanSubmit}
-          onClick={async () => { await saveResponse(token, enrollmentId, stepId, { classification, harmConcern, mitigation }); onComplete({ classification, harmConcern, mitigation }); }}
+          onClick={() => onComplete({ classification, harmConcern, mitigation })}
           style={{
             width: '100%',
-            background: writingCanSubmit ? 'var(--color-navy)' : 'var(--color-border)',
-            color: writingCanSubmit ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
+            background: 'var(--color-navy)',
+            color: 'var(--color-navy-text-on)',
             border: 'none',
             borderRadius: 'var(--radius-button)',
             padding: 14,
@@ -290,7 +260,7 @@ export default function Step7({ onComplete, onBack, student, token, enrollmentId
         >
           다음 단계로
         </button>
-        {!isTestClass && ((harmConcern.trim().length > 0 && harmConcernHasAbuse) || (mitigation.trim().length > 0 && mitigationHasAbuse)) ? (
+        {!readOnly && ((harmConcern.trim().length > 0 && harmConcernHasAbuse) || (mitigation.trim().length > 0 && mitigationHasAbuse)) ? (
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
             같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
           </p>

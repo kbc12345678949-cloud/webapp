@@ -147,7 +147,8 @@ function QuestionWithAnswer({ q, no }) {
 }
 
 // ---------- 화면 ----------
-export default function MyRecord({ student, enrollment, answers, stakeholders, stakeholderError, budgetGiven, onLogout }) {
+// onStepView: 수행평가 때와 같은 단계별 화면(보기 전용)으로 보기
+export default function MyRecord({ student, enrollment, answers, stakeholders, stakeholderError, budgetGiven, onLogout, actionLabel = '처음 화면으로', onStepView = null }) {
   const a3 = answers.step3;
   const a5 = answers.step5;
   const a7 = answers.step7;
@@ -191,6 +192,25 @@ export default function MyRecord({ student, enrollment, answers, stakeholders, s
           수행평가 때 순서 그대로 자료와 <strong>내가 입력한 답</strong>(초록 상자)을 보여줍니다. 자기평가서를 쓸 때
           참고하세요.
         </div>
+
+        {enrollment && onStepView && (
+          <button
+            onClick={onStepView}
+            style={{
+              width: '100%',
+              marginTop: 12,
+              background: 'var(--color-navy)',
+              color: 'var(--color-navy-text-on)',
+              border: 'none',
+              borderRadius: 'var(--radius-button)',
+              padding: 13,
+              fontSize: 15,
+              fontWeight: 500,
+            }}
+          >
+            수행평가 때처럼 단계별로 넘겨 보기 →
+          </button>
+        )}
 
         {!enrollment && (
           <div style={{ marginTop: 12 }}>
@@ -393,7 +413,7 @@ export default function MyRecord({ student, enrollment, answers, stakeholders, s
             fontWeight: 500,
           }}
         >
-          처음 화면으로
+          {actionLabel}
         </button>
       </div>
     </div>

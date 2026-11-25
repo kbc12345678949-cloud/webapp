@@ -3,33 +3,26 @@ import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
 import { policies, MIN_CHARS_STEP3 } from '../data/policies';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
-import { useAutoSave } from '../hooks/useAutoSave';
-import { saveResponse } from '../api';
+import { useTourismShell } from '../components/TourismShell';
+import { textareaStyle } from '../components/fieldStyle';
 
-export default function Step3({ onComplete, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange }) {
+// 저장은 App이 한곳에서 맡는다(입력할 때마다 onDraftChange로 알리면 App이 모아서 자동 저장).
+// 글자 수는 여기서 막지 않고, 최종 제출 때 '내 답안 전체 확인'에서 한꺼번에 확인한다.
+// 다음 단계(새로운 상황)가 고른 정책을 바탕으로 하므로, 정책 선택만은 해야 넘어갈 수 있다.
+export default function Step3({ onComplete, onBack, student, initialAnswer, onDraftChange }) {
+  const { readOnly } = useTourismShell();
   const [selected, setSelected] = useState(initialAnswer?.choice ?? null);
   const [reason, setReason] = useState(initialAnswer?.reason ?? '');
 
-  // 테스트반은 글자 수·반복문자 조건 없이, 정책만 선택하면 바로 넘어갈 수 있다
-  // (공개수업 참관 선생님들이 빠르게 훑어보실 수 있도록)
-  const isTestClass = student?.className === '테스트반';
   const charCount = reason.trim().length;
   const meetsMin = charCount >= MIN_CHARS_STEP3;
   const hasAbuse = hasRepeatedCharacterAbuse(reason);
-  const canSubmit = selected && (isTestClass || (meetsMin && !hasAbuse));
-
-  const { status: saveStatus, error: saveError } = useAutoSave(
-    token,
-    enrollmentId,
-    stepId,
-    { choice: selected, reason },
-    { skip: !selected && !reason }
-  );
+  const canSubmit = readOnly || !!selected;
 
   // 입력하는 동안 계속 상위(App)에도 지금 상태를 알려둔다.
   // 이렇게 해야 "이전 단계로" 갔다가 다시 돌아와도 쓰던 내용이 안 사라진다.
   useEffect(() => {
-    onDraftChange?.({ choice: selected, reason });
+    if (!readOnly) onDraftChange?.({ choice: selected, reason });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, reason]);
 
@@ -62,13 +55,14 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
         </p>
 
         {/* 정책 3안 카드 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+        <div id="field-t3-choice" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
           {policies.map((p) => {
             const isSelected = selected === p.id;
             return (
               <button
                 key={p.id}
-                onClick={() => setSelected(p.id)}
+                onClick={() => !readOnly && setSelected(p.id)}
+                disabled={readOnly}
                 style={{
                   textAlign: 'left',
                   background: isSelected ? 'var(--color-navy)' : 'var(--color-card)',
@@ -126,19 +120,13 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
             선택한 근거를 서술해주세요
           </p>
           <textarea
+            id="field-t3-reason"
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(e) => !readOnly && setReason(e.target.value)}
+            readOnly={readOnly}
             rows={6}
-            placeholder="제공된 자료를 근거로, 이 정책을 선택한 이유를 구체적으로 써보세요."
-            style={{
-              width: '100%',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              padding: 10,
-              fontSize: 13.5,
-              fontFamily: 'var(--font-family)',
-              resize: 'vertical',
-            }}
+            placeholder={readOnly ? '(작성하지 않음)' : '제공된 자료를 근거로, 이 정책을 선택한 이유를 구체적으로 써보세요.'}
+            style={textareaStyle(readOnly)}
           />
           <div
             style={{
@@ -148,22 +136,16 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
               marginTop: 8,
             }}
           >
-            <span style={{ fontSize: 12, color: meetsMin ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
-              {charCount} / {MIN_CHARS_STEP3}자 이상
+            <span style={{ fontSize: 12, color: meetsMin && !hasAbuse ? 'var(--color-teal)' : 'var(--color-text-muted)' }}>
+              {charCount} / {MIN_CHARS_STEP3}자 이상 {meetsMin && !hasAbuse ? '✓' : ''}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-              {saveStatus === 'saving' && '저장 중...'}
-              {saveStatus === 'saved' && '저장됨'}
-              {saveStatus === 'error' && (
-                <span style={{ color: 'var(--color-coral)' }}>저장 실패: {saveError}</span>
-              )}
-            </span>
+            {hasAbuse && <span style={{ fontSize: 12, color: 'var(--color-coral)' }}>같은 글자가 반복되고 있어요</span>}
           </div>
         </div>
 
         <button
           disabled={!canSubmit}
-          onClick={async () => { await saveResponse(token, enrollmentId, stepId, { choice: selected, reason }); onComplete({ choice: selected, reason }); }}
+          onClick={() => onComplete({ choice: selected, reason })}
           style={{
             width: '100%',
             background: canSubmit ? 'var(--color-navy)' : 'var(--color-border)',
@@ -179,13 +161,12 @@ export default function Step3({ onComplete, onBack, student, token, enrollmentId
         </button>
         {!canSubmit && (
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
-            {!selected
-              ? '정책안을 선택해주세요.'
-              : isTestClass
-              ? ''
-              : hasAbuse
-              ? '같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.'
-              : `${MIN_CHARS_STEP3 - charCount}자 더 작성해주세요.`}
+            정책안을 선택해야 다음 단계(새로운 상황)로 넘어갈 수 있어요.
+          </p>
+        )}
+        {canSubmit && !readOnly && !meetsMin && (
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8, textAlign: 'center' }}>
+            글자 수는 최종 제출 전까지 채우면 돼요. 앞뒤 단계를 오가며 고칠 수 있어요.
           </p>
         )}
       </div>

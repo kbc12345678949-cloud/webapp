@@ -1,5 +1,6 @@
 // src/steps/Step0.jsx
 import ProgressHeader from '../components/ProgressHeader';
+import { QuestionList } from '../components/TourismNav';
 
 export default function Step0({ onStart, student }) {
   return (
@@ -72,6 +73,43 @@ export default function Step0({ onStart, student }) {
             그 근거를 제시해야 합니다.
           </p>
         </div>
+
+        <div
+          style={{
+            background: 'var(--color-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)',
+            padding: '14px 16px',
+            marginBottom: 14,
+          }}
+        >
+          <p style={{ margin: '0 0 8px', fontSize: 13.5, fontWeight: 600, color: 'var(--color-navy)' }}>진행 방법</p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.75, color: 'var(--color-text-body)' }}>
+            <li>STEP1 자료 7개를 읽고 확인 문제를 풀어요. 이어서 STEP3부터 차례로 판단하고 글을 써요.</li>
+            <li>쓰는 내용은 자동으로 저장돼요. 다른 기기로 로그인해도 이어서 쓸 수 있어요.</li>
+            <li style={{ color: 'var(--color-coral)', fontWeight: 500 }}>
+              ⚠️ 한 번에 한 기기에서만 쓰세요. 두 기기에서 동시에 쓰면 한쪽에 쓴 내용이 지워질 수 있어요.
+            </li>
+            <li>위쪽 단계 번호를 눌러 이미 지나온 단계로 언제든 돌아가 고칠 수 있어요.</li>
+            <li>글자 수는 쓰는 동안 막지 않아요. 마지막 '내 답안 전체 확인'에서 한꺼번에 확인하고 최종 제출해요.</li>
+          </ul>
+        </div>
+        <details
+          style={{
+            background: 'var(--color-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)',
+            padding: '12px 16px',
+            marginBottom: 20,
+          }}
+        >
+          <summary style={{ cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'var(--color-teal)' }}>
+            📋 전체 질문 미리 보기
+          </summary>
+          <div style={{ marginTop: 12 }}>
+            <QuestionList />
+          </div>
+        </details>
 
         <button
           onClick={onStart}

@@ -11,17 +11,17 @@ vi.mock('../api', () => ({
 const STEP_PROPS = { token: 'fake-token', enrollmentId: 1, stepId: 1, stakeholders: mockStakeholders };
 
 describe('Step7 트레이드오프 분석', () => {
-  it('6명을 다 분류하기 전까지는 "분류 완료" 버튼이 비활성화된다', () => {
+  it('다 분류하지 않아도 서술 화면으로 넘어갈 수 있고, 몇 명 분류했는지 안내한다', () => {
     render(<Step7 {...STEP_PROPS} onComplete={() => {}} />);
-    expect(screen.getByText('분류 완료')).toBeDisabled();
-    expect(screen.getByText('6명 모두 분류해주세요. (0/6)')).toBeInTheDocument();
+    expect(screen.getByText(/분류 완료/)).not.toBeDisabled();
+    expect(screen.getByText(/지금 0\/6명 분류했어요/)).toBeInTheDocument();
   });
 
   it('한 명씩 분류할 때마다 진행 카운트가 올라간다', () => {
     render(<Step7 {...STEP_PROPS} onComplete={() => {}} />);
     const card = screen.getByText('원도심 임차 상인').closest('div');
     fireEvent.click(within(card.parentElement).getByText('불이익 집단'));
-    expect(screen.getByText('6명 모두 분류해주세요. (1/6)')).toBeInTheDocument();
+    expect(screen.getByText(/지금 1\/6명 분류했어요/)).toBeInTheDocument();
   });
 
   it('6명을 모두 분류하면 "다음 화면(서술)"으로 넘어가고, 불이익으로 고른 이름이 정확히 나온다', () => {
@@ -34,7 +34,7 @@ describe('Step7 트레이드오프 분석', () => {
       fireEvent.click(within(card).getByText(tagsToPick[i]));
     });
 
-    fireEvent.click(screen.getByText('분류 완료'));
+    fireEvent.click(screen.getByText(/분류 완료/));
 
     // writing 단계로 전환되었는지 확인
     expect(screen.getByText('보완책 제안')).toBeInTheDocument();
@@ -49,11 +49,11 @@ describe('Step7 트레이드오프 분석', () => {
       const card = screen.getByText(name).closest('div').parentElement;
       fireEvent.click(within(card).getByText('상관없어 보임'));
     });
-    fireEvent.click(screen.getByText('분류 완료'));
+    fireEvent.click(screen.getByText(/분류 완료/));
     expect(screen.getByText(/정말 아무도 손해를 보지 않는지/)).toBeInTheDocument();
   });
 
-  it('서술 없이는 제출 버튼이 비활성화되고, 작성하면 최종 데이터가 정확히 전달된다', async () => {
+  it('서술을 작성하고 다음으로 가면 최종 데이터가 정확히 전달된다', async () => {
     let result = null;
     render(<Step7 {...STEP_PROPS} onComplete={(d) => (result = d)} />);
     const card = (name) => screen.getByText(name).closest('div').parentElement;
@@ -63,9 +63,8 @@ describe('Step7 트레이드오프 분석', () => {
     fireEvent.click(within(card('지역 청년')).getByText('상관없어 보임'));
     fireEvent.click(within(card('숙박업 종사자')).getByText('상관없어 보임'));
     fireEvent.click(within(card('시 재정 담당 부서')).getByText('상관없어 보임'));
-    fireEvent.click(screen.getByText('분류 완료'));
+    fireEvent.click(screen.getByText(/분류 완료/));
 
-    expect(screen.getByText('다음 단계로')).toBeDisabled();
     const textarea = screen.getByPlaceholderText('보완책을 구체적으로 서술해주세요.');
     fireEvent.change(textarea, { target: { value: '홍보 지원을 확대해 손실을 보완한다.' } });
     fireEvent.click(screen.getByText('다음 단계로'));

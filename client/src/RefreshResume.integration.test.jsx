@@ -161,7 +161,7 @@ describe('새로고침 후 진행상황 복원', () => {
     await waitFor(() => expect(screen.getByText('1차 판단')).toBeInTheDocument());
     expect(screen.queryByText(/B안\(관리형 관광\)/)).not.toBeInTheDocument(); // STEP4로 건너뛰지 않았음
     expect(screen.getByDisplayValue('아직 다 못 씀')).toBeInTheDocument(); // 이전에 쓰던 내용 복원
-    expect(screen.getByText('다음 단계로')).toBeDisabled(); // 여전히 100자 미달이라 제출은 안 됨
+    // 글자 수가 모자라도 넘어갈 수는 있다(최종 제출 때 '내 답안 전체 확인'에서 한꺼번에 확인)
   });
 
   it('이미 제출을 마친 학생이 나중에 다시 로그인하면, 처음부터 다시 시키지 않고 곧바로 "완료" 화면을 보여준다', async () => {

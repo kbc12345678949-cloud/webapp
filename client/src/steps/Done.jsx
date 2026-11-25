@@ -34,7 +34,8 @@ function Row({ label, children }) {
   );
 }
 
-export default function Done({ student, step3Answer, step5Answer, step7Answer, step8Answer, step9Answer, stakeholders }) {
+// onReview: 제출한 답안을 수행평가 때와 같은 단계별 화면(보기 전용)으로 다시 보기
+export default function Done({ student, step3Answer, step5Answer, step7Answer, step8Answer, step9Answer, stakeholders, onReview }) {
   const p3 = policies.find((p) => p.id === step3Answer?.choice);
   const p5 = policies.find((p) => p.id === step5Answer?.choice);
   const p8 = policies.find((p) => p.id === step8Answer?.finalChoice);
@@ -112,6 +113,24 @@ export default function Done({ student, step3Answer, step5Answer, step7Answer, s
             <Row label="가장 어려웠던 부분">{step9Answer.self2}</Row>
             <Row label="새롭게 느낀 점">{step9Answer.self3}</Row>
           </Section>
+        )}
+        {onReview && (
+          <button
+            onClick={onReview}
+            style={{
+              width: '100%',
+              background: 'var(--color-navy)',
+              color: 'var(--color-navy-text-on)',
+              border: 'none',
+              borderRadius: 'var(--radius-button)',
+              padding: 14,
+              fontSize: 16,
+              fontWeight: 500,
+              marginTop: 6,
+            }}
+          >
+            STEP1부터 단계별로 다시 보기 →
+          </button>
         )}
       </div>
     </div>

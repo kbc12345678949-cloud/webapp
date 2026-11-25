@@ -4,9 +4,9 @@ import { policies } from '../data/policies';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import HintQuestions from '../components/HintQuestions';
 import ReviewPanel from '../components/ReviewPanel';
-import { useAutoSave } from '../hooks/useAutoSave';
-import { saveResponse } from '../api';
 import ProgressHeader from '../components/ProgressHeader';
+import { useTourismShell } from '../components/TourismShell';
+import { textareaStyle } from '../components/fieldStyle';
 
 const truncate = (text, n = 40) => (text && text.length > n ? text.slice(0, n) + '…' : text);
 
@@ -23,7 +23,7 @@ function JourneyRow({ label, children }) {
   );
 }
 
-function Field({ label, value, onChange, placeholder, rows = 4, hints }) {
+function Field({ id, label, value, onChange, placeholder, rows = 4, hints, readOnly }) {
   return (
     <div
       style={{
@@ -37,25 +37,22 @@ function Field({ label, value, onChange, placeholder, rows = 4, hints }) {
       <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 10px' }}>{label}</p>
       <HintQuestions questions={hints} />
       <textarea
+        id={id}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => !readOnly && onChange(e.target.value)}
+        readOnly={readOnly}
         rows={rows}
-        placeholder={placeholder}
-        style={{
-          width: '100%',
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-          padding: 10,
-          fontSize: 13.5,
-          fontFamily: 'var(--font-family)',
-          resize: 'vertical',
-        }}
+        placeholder={readOnly ? '(작성하지 않음)' : placeholder}
+        style={textareaStyle(readOnly)}
       />
     </div>
   );
 }
 
-export default function Step8({ step3Answer, step5Answer, step7Answer, onComplete, onBack, student, token, enrollmentId, stepId, stakeholders, initialAnswer, onDraftChange, budgetGiven }) {
+// 최종 선택·예상 문제점·보완 방안은 앞 단계에서 그대로 가져오고(App이 저장할 때도 최신 값으로 맞춤),
+// 학생이 여기서 쓰는 것은 핵심 근거 하나다. 빈칸 확인은 최종 제출 때 한꺼번에 한다.
+export default function Step8({ step3Answer, step5Answer, step7Answer, onComplete, onBack, student, stakeholders, initialAnswer, onDraftChange, budgetGiven }) {
+  const { readOnly } = useTourismShell();
   // 최종 선택은 STEP5(재판단)에서 정한 정책을 그대로 잇는다. 여기서 다시 고르게 하면
   // STEP7에서 이미 그 정책 기준으로 써둔 트레이드오프·보완책과 어긋날 수 있기 때문이다.
   const finalChoice = step5Answer?.choice ?? null;
@@ -75,18 +72,9 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
     stakeholders?.filter((s) => step7Answer.classification[s.stakeholder_key] === 'benefit').map((s) => s.name);
 
   const fieldsHaveAbuse = hasRepeatedCharacterAbuse(coreReason);
-  const canSubmit = finalChoice && coreReason.trim() && !fieldsHaveAbuse;
-
-  const { status: saveStatus, error: saveError } = useAutoSave(
-    token,
-    enrollmentId,
-    stepId,
-    { finalChoice, coreReason, expectedProblem, mitigationPlan },
-    { skip: !coreReason }
-  );
 
   useEffect(() => {
-    onDraftChange?.({ finalChoice, coreReason, expectedProblem, mitigationPlan });
+    if (!readOnly) onDraftChange?.({ finalChoice, coreReason, expectedProblem, mitigationPlan });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalChoice, coreReason]);
 
@@ -164,6 +152,8 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
         </div>
 
         <Field
+          id="field-t8-core"
+          readOnly={readOnly}
           label="핵심 근거"
           value={coreReason}
           onChange={setCoreReason}
@@ -211,27 +201,12 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
             {mitigationPlan || '(STEP7에서 작성한 내용이 없습니다)'}
           </p>
         </div>
-        <p style={{ textAlign: 'right', fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6 }}>
-          {saveStatus === 'saving' && '저장 중...'}
-          {saveStatus === 'saved' && '저장됨'}
-          {saveStatus === 'error' && <span style={{ color: 'var(--color-coral)' }}>저장 실패: {saveError}</span>}
-        </p>
-
         <button
-          disabled={!canSubmit}
-          onClick={async () => {
-            await saveResponse(token, enrollmentId, stepId, {
-              finalChoice,
-              coreReason,
-              expectedProblem,
-              mitigationPlan,
-            });
-            onComplete({ finalChoice, coreReason, expectedProblem, mitigationPlan });
-          }}
+          onClick={() => onComplete({ finalChoice, coreReason, expectedProblem, mitigationPlan })}
           style={{
             width: '100%',
-            background: canSubmit ? 'var(--color-navy)' : 'var(--color-border)',
-            color: canSubmit ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
+            background: 'var(--color-navy)',
+            color: 'var(--color-navy-text-on)',
             border: 'none',
             borderRadius: 'var(--radius-button)',
             padding: 14,
@@ -241,7 +216,7 @@ export default function Step8({ step3Answer, step5Answer, step7Answer, onComplet
         >
           다음 단계로
         </button>
-        {fieldsHaveAbuse && (
+        {fieldsHaveAbuse && !readOnly && (
           <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
             같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
           </p>

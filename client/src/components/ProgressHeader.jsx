@@ -2,9 +2,14 @@
 // 모든 STEP 화면 상단에 공통으로 쓰이는 헤더.
 // 프로젝트명, 로그인한 학생 정보(학번·이름), 진행 표시(현재/전체)를 보여준다.
 
+import { useTourismShell } from './TourismShell';
+
 // extra: 오른쪽 학생 정보 옆에 넣을 작은 버튼 등(조례 수행평가의 휴대폰/태블릿 모드 전환). 없으면 기존과 동일.
+// 관광정책 화면에서는 TourismShell이 내려준 막대(단계 이동·도구)를 헤더 바로 아래에 붙인다.
 export default function ProgressHeader({ projectLabel, currentStep, totalSteps, studentNo, studentName, extra = null }) {
+  const { below } = useTourismShell();
   return (
+    <>
     <div
       style={{
         background: 'var(--color-navy)',
@@ -32,5 +37,7 @@ export default function ProgressHeader({ projectLabel, currentStep, totalSteps, 
       </div>
       </div>
     </div>
+    {below}
+    </>
   );
 }

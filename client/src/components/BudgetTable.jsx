@@ -2,8 +2,8 @@
 // STEP4 "재정 부서 메모"(n2) 전용 — 항목별 요청 금액과 실제 예산의 격차를 보여주고,
 // 학생이 직접 "포기할 항목"을 선택해보며 부족분(8억)을 실제로 채워보게 한다.
 // 선택 상태(given)는 App.jsx가 갖고 있다가 STEP5에도 넘겨줘서, STEP4↔STEP5를
-// 오가도 사라지지 않고, 재판단할 때도 참고할 수 있게 한다(다만 STEP4 자체가
-// 원래 서버 저장 대상이 아니므로, 이 선택은 여전히 서버로 전송하지 않는다).
+// 오가도 사라지지 않고, 재판단할 때도 참고할 수 있게 한다.
+// (2026.11 개선) 이 선택도 STEP4 답안으로 서버에 저장해, 다른 기기로 들어가도 남는다.
 export const BUDGET_ITEMS = [
   { name: '축제·행사 운영', note: '작년 대비 방문객 급증으로 확대 요청', amount: 15, beneficiary: '임차 상인, 숙박업 종사자' },
   { name: '관광 홍보·마케팅', amount: 9, beneficiary: '임차 상인, 숙박업 종사자, 건물주' },
@@ -19,7 +19,7 @@ export const BUDGET_TOTAL_REQUEST = BUDGET_ITEMS.reduce((sum, it) => sum + it.am
 export const BUDGET_AMOUNT = 50;
 export const BUDGET_SHORTFALL = BUDGET_TOTAL_REQUEST - BUDGET_AMOUNT; // 8
 
-export default function BudgetTable({ given, onToggle }) {
+export default function BudgetTable({ given, onToggle, readOnly = false }) {
   const givenAmount = BUDGET_ITEMS.filter((it) => given[it.name]).reduce((sum, it) => sum + it.amount, 0);
   const enoughGivenUp = givenAmount >= BUDGET_SHORTFALL;
 
@@ -34,7 +34,8 @@ export default function BudgetTable({ given, onToggle }) {
         return (
           <button
             key={it.name}
-            onClick={() => onToggle(it.name)}
+            onClick={() => !readOnly && onToggle(it.name)}
+            disabled={readOnly}
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -47,7 +48,8 @@ export default function BudgetTable({ given, onToggle }) {
               background: isGiven ? 'rgba(43,110,104,0.08)' : 'transparent',
               gap: 10,
               textAlign: 'left',
-              cursor: 'pointer',
+              cursor: readOnly ? 'default' : 'pointer',
+              color: 'inherit',
             }}
           >
             <div style={{ display: 'flex', gap: 8, flex: 1 }}>

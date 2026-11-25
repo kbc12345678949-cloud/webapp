@@ -26,9 +26,9 @@ describe('Step8 최종 결정', () => {
     expect(screen.getByText(/불이익: 원도심 임차 상인, 숙박업 종사자/)).toBeInTheDocument();
   });
 
-  it('아무 것도 입력하지 않으면 버튼이 비활성화된다', () => {
+  it('핵심 근거를 비워 두어도 다음 단계로 갈 수 있다 (빈칸은 최종 제출 때 확인)', () => {
     render(<Step8 {...STEP_PROPS} step3Answer={mockStep3} step5Answer={mockStep5} step7Answer={mockStep7} onComplete={() => {}} />);
-    expect(screen.getByText('다음 단계로')).toBeDisabled();
+    expect(screen.getByText('다음 단계로')).not.toBeDisabled();
   });
 
   it('최종 선택은 STEP5의 선택(B)이 기본값으로 미리 채워진다', () => {

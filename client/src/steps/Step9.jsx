@@ -1,16 +1,15 @@
 // src/steps/Step9.jsx
 import { useState, useEffect } from 'react';
 import ProgressHeader from '../components/ProgressHeader';
-import { saveResponse, submitFinal } from '../api';
 import { hasRepeatedCharacterAbuse } from '../utils/textQuality';
 import ReviewPanel from '../components/ReviewPanel';
 import HintQuestions from '../components/HintQuestions';
+import { useTourismShell } from '../components/TourismShell';
+import { textareaStyle } from '../components/fieldStyle';
+// "있었다" 경로: 질문 2개 × 45자 = 90자 / "없었다" 경로: 질문 1개 × 90자 = 90자 (동일 총량)
+import { MIN_BRANCH_HAD, MIN_BRANCH_NONE, MIN_SELF } from '../data/tourismFlow';
 
-const MIN_BRANCH_HAD = 45; // "있었다" 경로: 질문 2개 × 45자 = 90자
-const MIN_BRANCH_NONE = 90; // "없었다" 경로: 질문 1개 × 90자 = 90자 (동일 총량)
-const MIN_SELF = 45;
-
-function TextField({ label, value, onChange, min, placeholder, hints }) {
+function TextField({ id, label, value, onChange, min, placeholder, hints, readOnly }) {
   const count = value.trim().length;
   const abuse = hasRepeatedCharacterAbuse(value);
   const ok = count >= min && !abuse;
@@ -18,21 +17,15 @@ function TextField({ label, value, onChange, min, placeholder, hints }) {
     <div>
       <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 8px' }}>{label}</p>
       <textarea
+        id={id}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => !readOnly && onChange(e.target.value)}
+        readOnly={readOnly}
         rows={5}
-        placeholder={placeholder}
-        style={{
-          width: '100%',
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-          padding: 10,
-          fontSize: 13.5,
-          fontFamily: 'var(--font-family)',
-          resize: 'vertical',
-        }}
+        placeholder={readOnly ? '(작성하지 않음)' : placeholder}
+        style={textareaStyle(readOnly)}
       />
-      {abuse ? (
+      {readOnly ? null : abuse ? (
         <span style={{ fontSize: 11.5, color: 'var(--color-coral)' }}>
           같은 글자가 반복되고 있어요. 내용을 구체적으로 써주세요.
         </span>
@@ -46,7 +39,10 @@ function TextField({ label, value, onChange, min, placeholder, hints }) {
   );
 }
 
-export default function Step9({ onSubmit, onBack, student, token, enrollmentId, stepId, initialAnswer, onDraftChange, step3Answer, step5Answer, step7Answer, step8Answer, stakeholders, budgetGiven }) {
+// 성찰. 최종 제출은 여기서 하지 않고 '내 답안 전체 확인'(onComplete)으로 넘어가 한꺼번에 확인한 뒤 한다.
+// 저장은 App이 맡는다(onDraftChange). initialPage: 전체 확인에서 특정 질문으로 바로 올 때 열 페이지.
+export default function Step9({ onComplete, onBack, student, initialAnswer, onDraftChange, step3Answer, step5Answer, step7Answer, step8Answer, stakeholders, budgetGiven, initialPage }) {
+  const { readOnly } = useTourismShell();
   const [branch, setBranch] = useState(initialAnswer?.branch ?? null);
   const [hadPoint, setHadPoint] = useState(initialAnswer?.hadPoint ?? '');
   const [hadChanged, setHadChanged] = useState(initialAnswer?.hadChanged ?? '');
@@ -54,35 +50,13 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
   const [self1, setSelf1] = useState(initialAnswer?.self1 ?? '');
   const [self2, setSelf2] = useState(initialAnswer?.self2 ?? '');
   const [self3, setSelf3] = useState(initialAnswer?.self3 ?? '');
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [index, setIndex] = useState(0); // STEP1처럼, 질문을 하나씩 넘겨보는 방식
-
-  // 테스트반은 글자 수·반복문자 조건 없이, "있었다/없었다" 분기 선택만 하면 바로 제출까지 갈 수 있다
-  const isTestClass = student?.className === '테스트반';
-
-  const branchOk = isTestClass
-    ? branch === 'had' || branch === 'none'
-    : branch === 'had'
-    ? hadPoint.trim().length >= MIN_BRANCH_HAD &&
-      !hasRepeatedCharacterAbuse(hadPoint) &&
-      hadChanged.trim().length >= MIN_BRANCH_HAD &&
-      !hasRepeatedCharacterAbuse(hadChanged)
-    : branch === 'none'
-    ? noneReason.trim().length >= MIN_BRANCH_NONE && !hasRepeatedCharacterAbuse(noneReason)
-    : false;
-
-  const selfOk = isTestClass
-    ? true
-    : self1.trim().length >= MIN_SELF &&
-      !hasRepeatedCharacterAbuse(self1) &&
-      self2.trim().length >= MIN_SELF &&
-      !hasRepeatedCharacterAbuse(self2) &&
-      self3.trim().length >= MIN_SELF &&
-      !hasRepeatedCharacterAbuse(self3);
-
-  const canSubmit = branchOk && selfOk;
+  const [index, setIndex] = useState(() => {
+    // 처음 열 페이지 계산(아래 pages와 같은 순서)
+    const b = initialAnswer?.branch;
+    const order = ['branch', ...(b === 'had' ? ['hadPoint', 'hadChanged'] : b === 'none' ? ['noneReason'] : []), 'self1', 'self2', 'self3'];
+    const i = initialPage ? order.indexOf(initialPage) : -1;
+    return i >= 0 ? i : 0;
+  }); // STEP1처럼, 질문을 하나씩 넘겨보는 방식
 
   const finalPayload = {
     branch,
@@ -95,7 +69,7 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
   };
 
   useEffect(() => {
-    onDraftChange?.(finalPayload);
+    if (!readOnly) onDraftChange?.(finalPayload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branch, hadPoint, hadChanged, noneReason, self1, self2, self3]);
 
@@ -109,13 +83,11 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
   const page = pages[Math.min(index, pages.length - 1)];
   const isFirst = index === 0;
   const isLast = index === pages.length - 1;
-  const branchChosen = branch === 'had' || branch === 'none';
 
   const goPrev = () => {
     if (!isFirst) setIndex((i) => i - 1);
   };
   const goNext = () => {
-    if (page === 'branch' && !branchChosen) return; // 분기를 골라야 다음으로 갈 수 있다
     if (!isLast) setIndex((i) => i + 1);
   };
 
@@ -153,7 +125,7 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
           성찰
         </h3>
         <p style={{ color: 'var(--color-text-body)', fontSize: 13, margin: '0 0 16px' }}>
-          마지막 단계입니다. 오늘의 판단 과정을 돌아봐 주세요. ({index + 1} / {pages.length})
+          오늘의 판단 과정을 돌아봐 주세요. ({index + 1} / {pages.length})
         </p>
 
         <div
@@ -167,7 +139,7 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
           }}
         >
           {page === 'branch' && (
-            <div>
+            <div id="field-t9-branch">
               <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 12px' }}>
                 짝과 의견이 갈렸던 부분이 있었나요?
               </p>
@@ -178,7 +150,8 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
                 ].map((opt) => (
                   <button
                     key={opt.key}
-                    onClick={() => setBranch(opt.key)}
+                    onClick={() => !readOnly && setBranch(opt.key)}
+                    disabled={readOnly}
                     style={{
                       flex: 1,
                       padding: '10px 0',
@@ -199,6 +172,8 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
 
           {page === 'hadPoint' && (
             <TextField
+              id="field-t9-hadPoint"
+              readOnly={readOnly}
               label="어떤 지점에서 의견이 갈렸고, 짝의 근거는 무엇이었나요?"
               value={hadPoint}
               onChange={setHadPoint}
@@ -213,6 +188,8 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
 
           {page === 'hadChanged' && (
             <TextField
+              id="field-t9-hadChanged"
+              readOnly={readOnly}
               label="논의 후 내 판단이 달라졌나요, 그대로였나요? 그 이유는?"
               value={hadChanged}
               onChange={setHadChanged}
@@ -224,6 +201,8 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
 
           {page === 'noneReason' && (
             <TextField
+              id="field-t9-noneReason"
+              readOnly={readOnly}
               label="짝과 의견이 일치한 이유는 무엇이라고 생각하나요?"
               value={noneReason}
               onChange={setNoneReason}
@@ -238,6 +217,8 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
 
           {page === 'self1' && (
             <TextField
+              id="field-t9-self1"
+              readOnly={readOnly}
               label="1차 판단에서 최종 결정까지 오는 동안, 내 생각을 가장 크게 흔든 자료나 순간은 무엇이었나요?"
               value={self1}
               onChange={setSelf1}
@@ -251,6 +232,8 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
 
           {page === 'self2' && (
             <TextField
+              id="field-t9-self2"
+              readOnly={readOnly}
               label="이번 활동에서 가장 어려웠던 부분은 무엇이었고, 어떻게 해결하려고 했나요?"
               value={self2}
               onChange={setSelf2}
@@ -264,6 +247,8 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
 
           {page === 'self3' && (
             <TextField
+              id="field-t9-self3"
+              readOnly={readOnly}
               label='이번 활동을 통해 "정치적 판단을 내린다는 것"에 대해 새롭게 느낀 점이 있다면?'
               value={self3}
               onChange={setSelf3}
@@ -293,134 +278,23 @@ export default function Step9({ onSubmit, onBack, student, token, enrollmentId, 
           >
             이전 질문
           </button>
-          {isLast ? (
-            <button
-              disabled={!canSubmit}
-              onClick={() => setShowConfirm(true)}
-              style={{
-                flex: 2,
-                background: canSubmit ? 'var(--color-navy)' : 'var(--color-border)',
-                color: canSubmit ? 'var(--color-navy-text-on)' : 'var(--color-text-muted)',
-                border: 'none',
-                borderRadius: 'var(--radius-button)',
-                padding: 14,
-                fontSize: 16,
-                fontWeight: 500,
-              }}
-            >
-              최종 제출하기
-            </button>
-          ) : (
-            <button
-              onClick={goNext}
-              disabled={page === 'branch' && !branchChosen}
-              style={{
-                flex: 2,
-                background: page === 'branch' && !branchChosen ? 'var(--color-border)' : 'var(--color-navy)',
-                color: page === 'branch' && !branchChosen ? 'var(--color-text-muted)' : 'var(--color-navy-text-on)',
-                border: 'none',
-                borderRadius: 'var(--radius-button)',
-                padding: 14,
-                fontSize: 16,
-                fontWeight: 500,
-              }}
-            >
-              다음 질문
-            </button>
-          )}
-        </div>
-        {isLast && !canSubmit && (
-          <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 8, textAlign: 'center' }}>
-            아직 다 채우지 못한 질문이 있어요. "이전 질문"으로 돌아가서 확인해주세요.
-          </p>
-        )}
-      </div>
-
-      {showConfirm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(27,42,65,0.55)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 24,
-          }}
-        >
-          <div
+          <button
+            onClick={isLast ? onComplete : goNext}
             style={{
-              background: '#FFFFFF',
-              borderRadius: 'var(--radius-card)',
-              padding: 22,
-              maxWidth: 320,
-              width: '100%',
+              flex: 2,
+              background: 'var(--color-navy)',
+              color: 'var(--color-navy-text-on)',
+              border: 'none',
+              borderRadius: 'var(--radius-button)',
+              padding: 14,
+              fontSize: 16,
+              fontWeight: 500,
             }}
           >
-            <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-navy)', margin: '0 0 10px' }}>
-              최종 제출하시겠습니까?
-            </p>
-            <p style={{ fontSize: 13, color: 'var(--color-text-body)', lineHeight: 1.6, margin: '0 0 20px' }}>
-              최종 제출 후에는 답안을 수정할 수 없습니다.
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => setShowConfirm(false)}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  borderRadius: 8,
-                  border: '1.5px solid var(--color-border)',
-                  background: '#FFFFFF',
-                  color: 'var(--color-text)',
-                  fontSize: 14,
-                }}
-              >
-                취소
-              </button>
-              <button
-                disabled={submitting}
-                onClick={async () => {
-                  setSubmitting(true);
-                  setSubmitError('');
-                  try {
-                    await saveResponse(token, enrollmentId, stepId, finalPayload);
-                    await submitFinal(token, enrollmentId);
-                    setShowConfirm(false);
-                    onSubmit(finalPayload);
-                  } catch (err) {
-                    setSubmitError(err.message);
-                  } finally {
-                    setSubmitting(false);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  borderRadius: 8,
-                  border: 'none',
-                  background: 'var(--color-navy)',
-                  color: 'var(--color-navy-text-on)',
-                  fontSize: 14,
-                  fontWeight: 500,
-                }}
-              >
-                제출
-              </button>
-            </div>
-            {submitting && (
-              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10, textAlign: 'center' }}>
-                제출 처리 중입니다...
-              </p>
-            )}
-            {submitError && (
-              <p style={{ fontSize: 12, color: 'var(--color-coral)', marginTop: 10, textAlign: 'center' }}>
-                제출에 실패했습니다: {submitError}
-              </p>
-            )}
-          </div>
+            {isLast ? '내 답안 전체 확인 →' : '다음 질문'}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

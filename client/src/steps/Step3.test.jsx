@@ -22,20 +22,23 @@ describe('Step3 1차 판단', () => {
     expect(screen.getByText('주민 생활권 우선')).toBeInTheDocument();
   });
 
-  it('아무것도 안 하면 다음 버튼이 비활성화 상태다', () => {
+  it('정책안을 고르지 않으면 다음 버튼이 비활성화 상태다 (새로운 상황이 고른 정책을 바탕으로 하므로)', () => {
     render(<Step3 {...STEP_PROPS} onComplete={() => {}} />);
     const btn = screen.getByText('다음 단계로');
     expect(btn).toBeDisabled();
-    expect(screen.getByText('정책안을 선택해주세요.')).toBeInTheDocument();
+    expect(screen.getByText(/정책안을 선택해야 다음 단계/)).toBeInTheDocument();
   });
 
-  it('정책만 고르고 글자 수가 부족하면 여전히 비활성화다', () => {
-    render(<Step3 {...STEP_PROPS} onComplete={() => {}} />);
+  it('정책만 고르면 글자 수가 부족해도 넘어갈 수 있다 (글자 수는 최종 제출 때 확인)', async () => {
+    let submitted = null;
+    render(<Step3 {...STEP_PROPS} onComplete={(d) => (submitted = d)} />);
     fireEvent.click(screen.getByText('관리형 관광'));
     const textarea = screen.getByPlaceholderText(/이 정책을 선택한 이유를/);
     fireEvent.change(textarea, { target: { value: SHORT_TEXT } });
-    expect(screen.getByText('다음 단계로')).toBeDisabled();
-    expect(screen.getByText(/자 더 작성해주세요/)).toBeInTheDocument();
+    expect(screen.getByText('다음 단계로')).not.toBeDisabled();
+    expect(screen.getByText(/최종 제출 전까지 채우면 돼요/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('다음 단계로'));
+    await vi.waitFor(() => expect(submitted).toEqual({ choice: 'B', reason: SHORT_TEXT }));
   });
 
   it('정책 선택 + 100자 이상 작성하면 버튼이 활성화되고 제출된다', async () => {
@@ -56,6 +59,6 @@ describe('Step3 1차 판단', () => {
     render(<Step3 {...STEP_PROPS} onComplete={() => {}} />);
     const textarea = screen.getByPlaceholderText(/이 정책을 선택한 이유를/);
     fireEvent.change(textarea, { target: { value: '12345' } });
-    expect(screen.getByText('5 / 100자 이상')).toBeInTheDocument();
+    expect(screen.getByText(/5 \/ 150자 이상/)).toBeInTheDocument();
   });
 });
